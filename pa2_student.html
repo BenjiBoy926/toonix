@@ -157,11 +157,6 @@
     */
     float diffuseFactor(vec3 normal, vec3 lightDir) {
         float df = dot(normalize(normal), normalize(lightDir));
-
-        if (gl_FrontFacing) {
-            df = -df;
-        }
-
         return max(0.0, df);
     }
 
