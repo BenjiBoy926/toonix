@@ -2,7 +2,7 @@
 <html>
 
 <head>
-<title>CS112 PA2: WebGL Shading</title>
+<title>Toonix: Cel Shading, Dithering, and Shadow Mapping with WebGL </title>
 <meta charset="utf-8">
 <link href="css/pa2.css" rel="stylesheet">
 <link href="css/spectrum.css" rel="stylesheet">
@@ -30,6 +30,7 @@
 <!-- Other javascript functions -->
 <script type="text/javascript" src="pa2.js"></script>
 
+<!-- TODO: remove all of the shaders below and write the toon cel shader -->
 
 <!-- Simple vertex shader for drawing the light source as a point -->
 <script id="shader-vs-light" type="x-shader/x-vertex">
@@ -151,25 +152,40 @@
     varying vec3 vPosition;             // Fragment position (camera space)
     varying vec3 vNormal;               // Fragment normal (camera space)
 
+    /*
+    *  Calculates the diffuse factor produced by the light illumination
+    */
+    float diffuseFactor(vec3 normal, vec3 lightDir) {
+        float df = dot(normalize(normal), normalize(lightDir));
+
+        if (gl_FrontFacing) {
+            df = -df;
+        }
+
+        return max(0.0, df);
+    }
+
+    /*
+    * The main program
+    */
     void main(void) {
         // Dummy variable to ensure the use of all vertex attributes.
         vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-        
-        // Get the intensity
+
+        // Calculate the light diffusion factor
         vec3 lightDir = uLightPos - vPosition;
-        float magnitude = length(lightDir);
-        float intensity = uLightPower / (((magnitude * magnitude) / 5.0) + 5.0);
+        float df = diffuseFactor(vNormal, lightDir);
 
-        // Get the dot product scalar
-        float dot = dot(normalize(vNormal), normalize(lightDir));
-        float scalar = dot > 0.0 ? dot : 0.0;
+        // Define the toon shading steps
+        float nSteps = 4.0;
+        float step = sqrt(df) * nSteps;
+        step = (floor(step) + smoothstep(0.48, 0.52, fract(step))) / nSteps;
 
-        // Get the frag vector
-        vec3 fragVector = uDiffuseColor * (intensity * scalar + uAmbient);
+        // Calculate the surface color
+        float surfaceColor = step * step;
 
-        // Task 2
-        gl_FragColor = zero + vec4(fragVector, 1.0); // FIXME
-
+        // Fragment shader output
+        gl_FragColor = zero + vec4(vec3(surfaceColor), 1.0);
     }
 </script>
 
@@ -362,15 +378,23 @@
         }
     }
 </script>
+
+<!-- END SHADER CONTENTS -->
+
 </head>
 
 
 <!-- HTML contents -->
 <body>
-    <h1>CS112 PA2: WebGL Shading</h1>
+    <h1>Toonix: Cel Shading, Dithering, and Shadow Mapping in WebGL</h1>
     <p>
         Student name: Codey Huntting<br>
-        Student ID: 82661345
+        Student ID: 82661345<br><br>
+
+        Student name: Christopher VerBurg <br>
+
+        <!-- TODO: add Chris Student ID -->
+        Student ID:
     </p>
 
     <div class="droplist">
@@ -430,17 +454,20 @@
     </div>
 
     <div class="panel" style="margin-left:10px">
-        <p>Shading Parameters (Common)</p>
+        <p>Shading Parameters</p>
         <table>
             <tr>
                 <td width="200px">Shader</td>
+
+                <!-- TODO: change or remove this to only include the cel shaders we designed -->
+
                 <td>
                     <select onchange="changeActiveShader(this);">
                         <option value="0" selected="selected">Default: White</option>
                         <option value="1">Task 1-1: Position</option>
                         <option value="2">Task 1-2: Normal</option>
                         <option value="3">Task 1-3: Lighting Dir.</option>
-                        <option value="4">Task 2: Diffuse Reflectance Model</option>
+                        <option value="4">Task 2: Cel Shader</option>
                         <option value="5">Task 3-1: Phong Reflectance Model</option>
                         <option value="6">Task 3-2: Blinn-Phong Reflectance Model</option>
                         <option value="7">Task 4: (Isotropic) Microfacet Reflectance Model</option>
@@ -467,6 +494,9 @@
                 </td>
             </tr>
 
+            <!-- TODO: add a panel with the specific parameters for the cel shader -->
+
+            <!--
             <tr class="phong-panel" style="display:none">
                 <td colspan="2"><hr><p>Shading Parameters (Phong)</p></td>
             </tr>
@@ -507,6 +537,7 @@
                 </td>
             </tr>
         </table>
+        -->            
     </div>
     <div style="clear:left"></div>
 </body>
