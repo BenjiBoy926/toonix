@@ -73,14 +73,7 @@ function createShader(vs_id, fs_id) {
 
 function initShaders() {
     shaderPrograms = [
-        createShader("shader-vs", "shader-fs0"),
-        createShader("shader-vs", "shader-fs1-1"),
-        createShader("shader-vs", "shader-fs1-2"),
-        createShader("shader-vs", "shader-fs1-3"),
-        createShader("shader-vs", "shader-fs2"),
-        createShader("shader-vs", "shader-fs3-1"),
-        createShader("shader-vs", "shader-fs3-2"),
-        createShader("shader-vs", "shader-fs4"),
+        createShader("shader-vs", "shader-fs-toon")
     ];
     currentProgram = shaderPrograms[0];
 
@@ -89,21 +82,21 @@ function initShaders() {
     //
 
     // Phong shading
-    shaderPrograms[5].exponentUniform = gl.getUniformLocation(shaderPrograms[5], "uExponent");
-    gl.useProgram(shaderPrograms[5]);
-    gl.uniform1f(shaderPrograms[5].exponentUniform, 50.0);    
+    // shaderPrograms[5].exponentUniform = gl.getUniformLocation(shaderPrograms[5], "uExponent");
+    // gl.useProgram(shaderPrograms[5]);
+    // gl.uniform1f(shaderPrograms[5].exponentUniform, 50.0);    
 
-    // Blinn-Phong shading
-    shaderPrograms[6].exponentUniform = gl.getUniformLocation(shaderPrograms[6], "uExponent");
-    gl.useProgram(shaderPrograms[6]);
-    gl.uniform1f(shaderPrograms[6].exponentUniform, 50.0);
+    // // Blinn-Phong shading
+    // shaderPrograms[6].exponentUniform = gl.getUniformLocation(shaderPrograms[6], "uExponent");
+    // gl.useProgram(shaderPrograms[6]);
+    // gl.uniform1f(shaderPrograms[6].exponentUniform, 50.0);
 
-    // Microfacet shading
-    shaderPrograms[7].iorUniform = gl.getUniformLocation(shaderPrograms[7], "uIOR");
-    shaderPrograms[7].betaUniform = gl.getUniformLocation(shaderPrograms[7], "uBeta");
-    gl.useProgram(shaderPrograms[7]);
-    gl.uniform1f(shaderPrograms[7].iorUniform, 5.0);
-    gl.uniform1f(shaderPrograms[7].betaUniform, 0.2);
+    // // Microfacet shading
+    // shaderPrograms[7].iorUniform = gl.getUniformLocation(shaderPrograms[7], "uIOR");
+    // shaderPrograms[7].betaUniform = gl.getUniformLocation(shaderPrograms[7], "uBeta");
+    // gl.useProgram(shaderPrograms[7]);
+    // gl.uniform1f(shaderPrograms[7].iorUniform, 5.0);
+    // gl.uniform1f(shaderPrograms[7].betaUniform, 0.2);
 
     // Initializing light source drawing shader
     lightProgram = createShaderProg("shader-vs-light", "shader-fs-light");
@@ -232,6 +225,5 @@ function webGLStart() {
     gl.clearColor(0.3, 0.3, 0.3, 1.0);
     gl.enable(gl.DEPTH_TEST);
 
-    currentProgram = shaderPrograms[0];
     tick();
 }

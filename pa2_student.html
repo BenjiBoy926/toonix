@@ -75,7 +75,7 @@
     }
 </script>
 
-<!-- Fragment shader: white -->
+<!-- Fragment shader: white
 <script id="shader-fs0" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -90,7 +90,7 @@
     }
 </script>
 
-<!-- Fragment shader: position -->
+<-- Fragment shader: position
 <script id="shader-fs1-1" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -106,7 +106,7 @@
     }
 </script>
 
-<!-- Fragment shader: normal -->
+<-- Fragment shader: normal
 <script id="shader-fs1-2" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -122,7 +122,7 @@
     }
 </script>
 
-<!-- Fragment shader: lighting direction -->
+<-- Fragment shader: lighting direction
 <script id="shader-fs1-3" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -140,13 +140,14 @@
     }
 </script>
 
-<!-- Fragment shader: diffuse model -->
-<script id="shader-fs2" type="x-shader/x-fragment">
+<-- Fragment shader: toon shader -->
+<script id="shader-fs-toon" type="x-shader/x-fragment">
     precision mediump float;
 
     uniform vec3 uLightPos;             // Light position in camera space
     uniform float uLightPower;          // Light power
     uniform vec3 uDiffuseColor;         // Diffuse color
+    uniform vec3 uSpecularColor;        // Specular color
     uniform float uAmbient;             // Ambient
 
     varying vec3 vPosition;             // Fragment position (camera space)
@@ -176,15 +177,15 @@
         float step = sqrt(df) * nSteps;
         step = (floor(step) + smoothstep(0.48, 0.52, fract(step))) / nSteps;
 
-        // Calculate the surface color
-        float surfaceColor = step * step;
+        // Calculate the surface intensity
+        float surfaceIntensity = step * step;
 
         // Fragment shader output
-        gl_FragColor = zero + vec4(vec3(surfaceColor), 1.0);
+        gl_FragColor = zero + vec4(uSpecularColor * surfaceIntensity, 1.0);
     }
 </script>
 
-<!-- Fragment shader: Phong model -->
+<!-- Fragment shader: Phong model
 <script id="shader-fs3-1" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -239,7 +240,7 @@
     }
 </script>
 
-<!-- Fragment shader: Blinn-Phong model -->
+<-- Fragment shader: Blinn-Phong model
 <script id="shader-fs3-2" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -290,7 +291,7 @@
     }
 </script>
 
-<!-- Fragment shader: microfacet model -->
+<-- Fragment shader: microfacet model
 <script id="shader-fs4" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -374,7 +375,7 @@
     }
 </script>
 
-<!-- END SHADER CONTENTS -->
+<-- END SHADER CONTENTS -->
 
 </head>
 
@@ -451,10 +452,11 @@
     <div class="panel" style="margin-left:10px">
         <p>Shading Parameters</p>
         <table>
+            <!--
             <tr>
                 <td width="200px">Shader</td>
 
-                <!-- TODO: change or remove this to only include the cel shaders we designed -->
+                <-- TODO: change or remove this to only include the cel shaders we designed
 
                 <td>
                     <select onchange="changeActiveShader(this);">
@@ -469,6 +471,7 @@
                     </select>
                 </td>
             </tr>
+            -->
             <tr>
                 <td>Diffuse Color</td>
                 <td>
