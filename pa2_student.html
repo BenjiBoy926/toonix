@@ -75,72 +75,7 @@
     }
 </script>
 
-<!-- Fragment shader: white
-<script id="shader-fs0" type="x-shader/x-fragment">
-    precision mediump float;
-
-    varying vec3 vPosition;             // Vertex position (camera space)
-    varying vec3 vNormal;               // Vertex normal (camera space)
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        gl_FragColor = zero + vec4(1.0, 1.0, 1.0, 1.0);
-    }
-</script>
-
-<-- Fragment shader: position
-<script id="shader-fs1-1" type="x-shader/x-fragment">
-    precision mediump float;
-
-    varying vec3 vPosition;             // Vertex position (camera space)
-    varying vec3 vNormal;               // Vertex normal (camera space)
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        // Task 1-1
-        gl_FragColor = zero + vec4(abs(vPosition), 1.0); // FIXME
-    }
-</script>
-
-<-- Fragment shader: normal
-<script id="shader-fs1-2" type="x-shader/x-fragment">
-    precision mediump float;
-
-    varying vec3 vPosition;             // Vertex position (camera space)
-    varying vec3 vNormal;               // Fragment normal (camera space)
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        // Task 1-2
-        gl_FragColor = zero + vec4(abs(normalize(vNormal)), 1.0); // FIXME
-    }
-</script>
-
-<-- Fragment shader: lighting direction
-<script id="shader-fs1-3" type="x-shader/x-fragment">
-    precision mediump float;
-
-    uniform vec3 uLightPos;             // Light position in camera space
-
-    varying vec3 vPosition;             // Fragment position (camera space)
-    varying vec3 vNormal;               // Fragment normal (camera space)
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        // Task 1-3
-        gl_FragColor = zero + vec4(normalize(uLightPos - vPosition), 1.0); // FIXME
-    }
-</script>
-
-<-- Fragment shader: toon shader -->
+<!-- Fragment shader: toon shader -->
 <script id="shader-fs-toon" type="x-shader/x-fragment">
     precision mediump float;
 
@@ -185,200 +120,7 @@
     }
 </script>
 
-<!-- Fragment shader: Phong model
-<script id="shader-fs3-1" type="x-shader/x-fragment">
-    precision mediump float;
-
-    uniform vec3 uLightPos;             // Light position in camera space
-    uniform float uLightPower;          // Light power
-    uniform vec3 uDiffuseColor;         // Diffuse color
-    uniform vec3 uSpecularColor;        // Specular color
-    uniform float uExponent;            // Phong exponent
-    uniform float uAmbient;             // Ambient
-
-    varying vec3 vPosition;             // Fragment position (camera space)
-    varying vec3 vNormal;               // Fragment normal (camera space)
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        // Get some important values for the computation
-        vec3 normal = normalize(vNormal);
-        vec3 lightDir = uLightPos - vPosition;
-        vec3 nLightDir = normalize(lightDir);
-        float normalDotLight = dot(normal, nLightDir);
-
-        if(normalDotLight > 0.0) {
-            // Get viewing direction
-            vec3 view = -(normalize(vPosition));
-            
-            // Get reflected direction
-            vec3 reflection = 2.0 * normalDotLight * normal - nLightDir;
-
-            // Get the intensity
-            float magnitude = length(lightDir);
-            float intensity = uLightPower / (((magnitude * magnitude) / 5.0) + 5.0);
-
-            // Get adding constant
-            float viewReflectDot = dot(view, reflection);
-            float viewReflectDotMax = viewReflectDot > 0.0 ? viewReflectDot : 0.0;
-            float specularComponent = intensity * pow(viewReflectDotMax, uExponent);
-
-            // Get multiply constant
-            float ambientComponent = intensity * normalDotLight + uAmbient;
-
-            // Get the final vector
-            vec3 colorVector = (uDiffuseColor * ambientComponent) + (uSpecularColor * specularComponent);
-
-            // Assign the gl fragment color
-            gl_FragColor = zero + vec4(colorVector, 1.0);
-        }    
-        else {
-            gl_FragColor = zero + vec4(uDiffuseColor * uAmbient, 1.0);
-        }    
-    }
-</script>
-
-<-- Fragment shader: Blinn-Phong model
-<script id="shader-fs3-2" type="x-shader/x-fragment">
-    precision mediump float;
-
-    uniform vec3 uLightPos;             // Light position in camera space
-    uniform float uLightPower;          // Light power
-    uniform vec3 uDiffuseColor;         // Diffuse color
-    uniform vec3 uSpecularColor;        // Specular color
-    uniform float uExponent;            // Blinn-Phong exponent
-    uniform float uAmbient;             // Ambient
-
-    varying vec3 vPosition;             // Fragment position (camera space)
-    varying vec3 vNormal;               // Fragment normal (camera space)
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        // Get some important values for the computation
-        vec3 normal = normalize(vNormal);
-        vec3 lightDir = uLightPos - vPosition;
-        vec3 nLightDir = normalize(lightDir);
-        float normalDotLight = dot(normal, nLightDir);
-
-        if(normalDotLight > 0.0) {
-            // Get the intensity
-            float magnitude = length(lightDir);
-            float intensity = uLightPower / (((magnitude * magnitude) / 5.0) + 5.0);
-
-            // Get the half vector
-            vec3 view = -(normalize(vPosition));
-            vec3 halfVector = normalize(nLightDir + view);
-
-            // Get adding constant
-            float specularComponent = intensity * pow(dot(normal, halfVector), uExponent);
-
-            // Get multiply constant
-            float ambientComponent = intensity * normalDotLight + uAmbient;
-
-            // Get the final vector
-            vec3 colorVector = (uDiffuseColor * ambientComponent) + (uSpecularColor * specularComponent);
-
-            // Assign the gl fragment color
-            gl_FragColor = zero + vec4(colorVector, 1.0);
-        }    
-        else {
-            gl_FragColor = zero + vec4(uDiffuseColor * uAmbient, 1.0);
-        }
-    }
-</script>
-
-<-- Fragment shader: microfacet model
-<script id="shader-fs4" type="x-shader/x-fragment">
-    precision mediump float;
-
-    uniform vec3 uLightPos;             // Light position in camera space
-    uniform float uLightPower;          // Light power
-    uniform vec3 uDiffuseColor;         // Diffuse color
-    uniform vec3 uSpecularColor;        // Specular color
-    uniform float uBeta;                // Roughness
-    uniform float uIOR;                 // Index of refraction
-    uniform float uAmbient;             // Ambient
-
-    varying vec3 vPosition;             // Fragment position (camera space)
-    varying vec3 vNormal;               // Fragment normal (camera space)
-
-    float shadowMaskUtil(in vec3 vector, in vec3 normal) {
-        float theta = acos(dot(normal, vector));
-        float tangent = tan(theta);
-        float tangentSqrd = tangent * tangent;
-        float betaSqrd = uBeta * uBeta;
-        
-        float addingConstant = pow(1.0 + betaSqrd * tangentSqrd, 0.5);
-        return 2.0 / (1.0 + addingConstant);
-    }
-
-    void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
-
-        // Get some important values for the computation
-        vec3 normal = normalize(vNormal);
-        vec3 lightDir = uLightPos - vPosition;
-        vec3 nLightDir = normalize(lightDir);
-        float normalDotLight = dot(normal, nLightDir);
-
-        if(normalDotLight > 0.0) {
-            // Get the intensity
-            float magnitude = length(lightDir);
-            float intensity = uLightPower / (((magnitude * magnitude) / 5.0) + 5.0);
-
-            // Get the view
-            vec3 view = -(normalize(vPosition));
-
-            // Get the half vector
-            vec3 halfVector = normalize(nLightDir + view);
-
-            // Get the Fresnel factor 
-            float c = dot(nLightDir, halfVector);
-            float g = pow(uIOR * uIOR - 1.0 + c * c, 0.5);
-            float gmc = g - c;
-            float gpc = g + c;
-            float ratio1 = (gmc * gmc) / (gpc * gpc);
-            float ratio2 = (c * gpc - 1.0) / (c * gmc + 1.0);
-            float ratio2Sqrd = ratio2 * ratio2;
-            float fresnel = 0.5 * ratio1 * (1.0 + ratio2Sqrd);
-
-            // Get the GGX normal distribution
-            float betaSqrd = uBeta * uBeta;
-            float thetaH = acos(dot(normal, halfVector));
-            float cosine = cos(thetaH);
-            float tangent = tan(thetaH);
-            float bPlusTan = betaSqrd + (tangent * tangent);
-            float bPlusTanSqrd = bPlusTan * bPlusTan;
-            float pi = 3.1415926535897932384626433832795;
-            float gxx = betaSqrd / (pi * pow(cosine, 4.0) * bPlusTanSqrd);
-
-            // Get the shadow mask
-            float shadowMask = shadowMaskUtil(nLightDir, normal) * shadowMaskUtil(view, normal);
-
-            // Compute the final color vector
-            float funcRatio = (fresnel * gxx * shadowMask) / (4.0 * normalDotLight * dot(normal, view));
-            vec3 specularComponent = intensity * normalDotLight * (uDiffuseColor + (uSpecularColor * funcRatio));
-            vec3 ambientComponent = uDiffuseColor * uAmbient;
-            vec3 colorVector = specularComponent + ambientComponent;
-
-            // Assign the gl fragment color
-            gl_FragColor = zero + vec4(colorVector, 1.0);
-        }    
-        else {
-            gl_FragColor = zero + vec4(uDiffuseColor * uAmbient, 1.0);
-        }
-    }
-</script>
-
-<-- END SHADER CONTENTS -->
-
 </head>
-
 
 <!-- HTML contents -->
 <body>
@@ -439,13 +181,15 @@
                     (<span id="sliderAmountLight">60</span>&deg;/s)
                 </td>
             </tr>
+            <!--
+            TODO: incorporate light power in cel shader 
             <tr>
                 <td>Light power</td>
                 <td>
                     <input id="sliderBar_LightPower" type="range" min="1" max="20" value="10" onchange="updateSlider_LightPower(this.value);">
                     (<span id="sliderAmount_LightPower">5</span>)
                 </td>
-            </tr>
+            </tr> -->
         </table>
     </div>
 
@@ -453,11 +197,31 @@
         <p>Shading Parameters</p>
         <table>
             <!--
+            TODO: incorporate diffuse color in cel shader 
             <tr>
-                <td width="200px">Shader</td>
+                <td>Diffuse Color</td>
+                <td>
+                    <input type="text" id="colorPicker"> (<span id="colorText">#1f75fe</span>)
+                </td>
+            </tr> -->
+            <tr>
+                <td>Specular Color</td>
+                <td>
+                    <input type="text" id="specularColorPicker"> (<span id="specularColorText">#1f75fe</span>)
+                </td>
+            </tr>
+            <!--
+            TODO: incorporate ambient light intensity in cel shader
+            <tr>
+                <td>Ambient</td>
+                <td>
+                    <input type="range" min="0" max="50" value="10" onchange="updateSlider_Ambient(this.value);">
+                    (<span id="sliderAmount_Ambient">0.1</span>)
+                </td>
+            </tr>
 
-                <-- TODO: change or remove this to only include the cel shaders we designed
-
+            TODO: allow step number change for cel shader
+            <tr>
                 <td>
                     <select onchange="changeActiveShader(this);">
                         <option value="0" selected="selected">Default: White</option>
@@ -472,70 +236,7 @@
                 </td>
             </tr>
             -->
-            <tr>
-                <td>Diffuse Color</td>
-                <td>
-                    <input type="text" id="colorPicker"> (<span id="colorText">#1f75fe</span>)
-                </td>
-            </tr>
-            <tr>
-                <td>Specular Color</td>
-                <td>
-                    <input type="text" id="specularColorPicker"> (<span id="specularColorText">#1f75fe</span>)
-                </td>
-            </tr>
-            <tr>
-                <td>Ambient</td>
-                <td>
-                    <input type="range" min="0" max="50" value="10" onchange="updateSlider_Ambient(this.value);">
-                    (<span id="sliderAmount_Ambient">0.1</span>)
-                </td>
-            </tr>
-
-            <!-- TODO: add a panel with the specific parameters for the cel shader -->
-
-            <!--
-            <tr class="phong-panel" style="display:none">
-                <td colspan="2"><hr><p>Shading Parameters (Phong)</p></td>
-            </tr>
-            <tr class="phong-panel" style="display:none">
-                <td>Exponent</td>
-                <td>
-                    <input type="range" min="1" max="40" value="10" onchange="updateSlider_PhongExp(this.value);">
-                    (<span id="sliderAmount_PhongExp">50</span>)
-                </td>
-            </tr>
-
-            <tr class="blinn-phong-panel" style="display:none">
-                <td colspan="2"><hr><p>Shading Parameters (Blinn-Phong)</p></td>
-            </tr>
-            <tr class="blinn-phong-panel" style="display:none">
-                <td>Exponent</td>
-                <td>
-                    <input type="range" min="1" max="40" value="10" onchange="updateSlider_BlinnPhongExp(this.value);">
-                    (<span id="sliderAmount_BlinnPhongExp">50</span>)
-                </td>
-            </tr>
-
-            <tr class="microfacet-panel" style="display:none">
-                <td colspan="2"><hr><p>Shading Parameters (Microfacet)</p></td>
-            </tr>
-            <tr class="microfacet-panel" style="display:none">
-                <td>Index of Refraction</td>
-                <td>
-                    <input id="sliderBar_MicrofacetIOR" type="range" min="20" max="100" value="50" onchange="updateSlider_MicrofacetIOR(this.value);">
-                    (<span id="sliderAmount_MicrofacetIOR">5.0</span>)
-                </td>
-            </tr>
-            <tr class="microfacet-panel" style="display:none">
-                <td>Beta</td>
-                <td>
-                    <input id="sliderBar_MicrofacetBeta" type="range" min="5" max="50" value="20" onchange="updateSlider_MicrofacetBeta(this.value);">
-                    (<span id="sliderAmount_MicrofacetBeta">0.2</span>)
-                </td>
-            </tr>
-        </table>
-        -->            
+        </table>            
     </div>
     <div style="clear:left"></div>
 </body>
