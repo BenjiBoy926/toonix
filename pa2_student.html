@@ -111,10 +111,12 @@
         step = (floor(step) + smoothstep(0.48, 0.52, fract(step))) / nSteps;
 
         // Calculate the surface intensity
-        float surfaceIntensity = step * step;
+        float specularIntensity = step * step;
+        vec3 specularColor = uSpecularColor * specularIntensity;
+        vec3 ambientColor = df * uAmbient * uDiffuseColor;
 
         // Fragment shader output
-        gl_FragColor = zero + vec4(uSpecularColor * surfaceIntensity, 1.0);
+        gl_FragColor = zero + vec4(specularColor + ambientColor, 1.0);
     }
 </script>
 
@@ -194,22 +196,21 @@
     <div class="panel" style="margin-left:10px">
         <p>Shading Parameters</p>
         <table>
-            <!--
-            TODO: incorporate diffuse color in cel shader 
+            <!-- TODO: incorporate diffuse color in cel shader  -->
             <tr>
                 <td>Diffuse Color</td>
                 <td>
                     <input type="text" id="colorPicker"> (<span id="colorText">#1f75fe</span>)
                 </td>
-            </tr> -->
+            </tr>
             <tr>
                 <td>Specular Color</td>
                 <td>
                     <input type="text" id="specularColorPicker"> (<span id="specularColorText">#1f75fe</span>)
                 </td>
             </tr>
-            <!--
-            TODO: incorporate ambient light intensity in cel shader
+            
+            <!-- TODO: incorporate ambient light intensity in cel shader -->
             <tr>
                 <td>Ambient</td>
                 <td>
@@ -218,7 +219,7 @@
                 </td>
             </tr>
 
-            TODO: allow step number change for cel shader
+            <!-- TODO: allow step number change for cel shader
             <tr>
                 <td>
                     <select onchange="changeActiveShader(this);">
@@ -232,8 +233,7 @@
                         <option value="7">Task 4: (Isotropic) Microfacet Reflectance Model</option>
                     </select>
                 </td>
-            </tr>
-            -->
+            </tr> -->
         </table>            
     </div>
     <div style="clear:left"></div>
