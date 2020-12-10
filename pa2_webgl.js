@@ -18,7 +18,6 @@ function initGL(canvas) {
 /*
  * Initializing object geometries
  */
- var mesh0AdjGLBuff,mesh1AdjGLBuff,mesh2AdjGLBuff;
 var meshes, meshTransforms;
 var currentMesh, currentTransform;
 function initMesh() {
@@ -31,13 +30,6 @@ function initMesh() {
     OBJ.initMeshBuffers(gl, meshes[0]);
     OBJ.initMeshBuffers(gl, meshes[1]);
     OBJ.initMeshBuffers(gl, meshes[2]);
-
-    var adjBuf = createAdjanceyBuffer(meshes[0]);
-    mesh0AdjGLBuff = buildBuf(gl, gl.ELEMENT_ARRAY_BUFFER, adjBuf, 1);
-    adjBuf = createAdjanceyBuffer(meshes[1]);
-    mesh1AdjGLBuff = buildBuf(gl, gl.ELEMENT_ARRAY_BUFFER, adjBuf, 1);
-    adjBuf = createAdjanceyBuffer(meshes[2]);
-    mesh2AdjGLBuff = buildBuf(gl, gl.ELEMENT_ARRAY_BUFFER, adjBuf, 1);
 
     currentMesh = meshes[0];
 
