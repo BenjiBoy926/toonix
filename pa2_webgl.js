@@ -44,7 +44,7 @@ function initMesh() {
     mat4.translate(meshTransforms[1], [0.5, 0, 0]);
 
     mat4.identity(meshTransforms[2]);
-    mat4.scale(meshTransforms[2], [0.15, 0.15, 0.15]);   
+    mat4.scale(meshTransforms[2], [0.25, 0.25, 0.25]);   
 
     currentTransform = meshTransforms[0];
 }
