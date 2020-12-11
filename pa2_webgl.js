@@ -55,7 +55,7 @@ function initMesh() {
  */
 var shaderPrograms;
 var currentProgram;
-var edgeProgram;
+var postProcessProgram;
 var lightProgram;
 function createShader(vs_id, fs_id) {
     var shaderProg = createShaderProg(vs_id, fs_id);
@@ -74,6 +74,20 @@ function createShader(vs_id, fs_id) {
     shaderProg.ksUniform = gl.getUniformLocation(shaderProg, "uSpecularColor");
     shaderProg.ambientUniform = gl.getUniformLocation(shaderProg, "uAmbient");    
 
+    return shaderProg;
+}
+
+function createPostProcessShader(vs_id, fs_id) {
+    var shaderProg = createShaderProg(vs_id, fs_id);
+
+    shaderProg.texturePositionAttribute = gl.getAttribLocation(shaderProg, "a_textcoord");
+    gl.enableVertexAttribArray(shaderProg.texturePositionAttribute);
+    shaderProg.vertexPositionAttribute = gl.getAttribLocation(shaderProg, "a_position");
+    gl.enableVertexAttribArray(shaderProg.vertexPositionAttribute);      
+
+    shaderProg.uResolutionUniform = gl.getUniformLocation(shaderProg, "u_resolution");
+    shaderProg.uTextureUniform = gl.getUniformLocation(shaderProg, "u_texture");
+    shaderProg.uTextureSizeUniform = gl.getUniformLocation(shaderProg, "u_textureSize");
     return shaderProg;
 }
 
@@ -105,7 +119,7 @@ function initShaders() {
     // gl.uniform1f(shaderPrograms[7].iorUniform, 5.0);
     // gl.uniform1f(shaderPrograms[7].betaUniform, 0.2);
 
-    edgeProgram = createShader("shader-vs", "shader-fs-edge-detect");
+    postProcessProgram = createPostProcessShader("shader-vs-post", "shader-fs-post");
 
     // Initializing light source drawing shader
     lightProgram = createShaderProg("shader-vs-light", "shader-fs-light");
@@ -180,6 +194,7 @@ var draw_light = false;
 
 
 //will need to be updated to allow for multiple meshes
+//Does the toon rendering of the scene to a texture so that we can post process on it
 function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
 {
     var textOuput = gl.createTexture();
@@ -224,7 +239,7 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.viewport(0, 0, width, height);
 
     // Clear the attachment(s).
-    gl.clearColor(0, 0, 1, 1);   // clear to blue
+    gl.clearColor(0, 0, 0, 0);   // clear to black
     gl.clear(gl.COLOR_BUFFER_BIT| gl.DEPTH_BUFFER_BIT);
 
     gl.useProgram(shaderProg);
@@ -270,6 +285,31 @@ function copy(out, a)
   out[15] = a[15];
 }
 
+//Set the shader variables from pMat (projection matrix) and
+//    from mMat which is the model and view transforms
+function setPostprocessingUniforms(prog,texture, width, height) {
+    gl.activeTexture(gl.TEXTURE0); //Do I need this?
+    gl.bindTexture(gl.TEXTURE_2D, texture); //and this?
+    gl.uniform1i(prog.uTextureUniform, texture);
+    gl.uniform2fv(prog.uTextureSizeUniform, [width,height]);
+    gl.uniform2fv(prog.uResolutionUniform, [width,height]);
+}
+
+function setRectangle(gl, x, y, width, height) {
+  var x1 = x;
+  var x2 = x + width;
+  var y1 = y;
+  var y2 = y + height;
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+     x1, y1,
+     x2, y1,
+     x1, y2,
+     x1, y2,
+     x2, y1,
+     x2, y2,
+  ]), gl.STATIC_DRAW);
+}
+
 function drawScene() {
 
     mat4.identity(mvMatrix);
@@ -280,32 +320,81 @@ function drawScene() {
     var cpy = mat4.create();
     copy(cpy,mvMatrix);
 
-    //consumes cpy matrix
-    var normSceneMap =  renderSceneToTexture(edgeProgram,currentMesh,true,false,cpy,gl.viewportWidth,gl.viewportHeight);
-
-    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-    gl.clearColor(1, 1, 1, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    mat4.perspective(35, gl.viewportWidth/gl.viewportHeight, 0.1, 1000.0, pMatrix);
-
     setLightPosition();
+    //consumes cpy matrix
+    //actual shader but writes to a texture
+    var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,false,cpy,gl.viewportWidth,gl.viewportHeight);
 
-    gl.useProgram(currentProgram);
-    setUniforms(currentProgram,pMatrix,mvMatrix);  
+
+
+    // Create a buffer to put three 2d clip space points in
+    var positionBuffer = gl.createBuffer();
+    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // Set a rectangle the same size as the image.
+    setRectangle(gl, 0, 0, gl.viewportWidth, gl.viewportHeight);
+        //screen is just 2 triangles, so we will post process on that
+    var texcoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+
+    //bug is probably here and in set rectangle
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      0.0,  0.0,
+      1.0,  0.0,
+      0.0,  1.0,
+      0.0,  1.0,
+      1.0,  0.0,
+      1.0,  1.0,
+    ]), gl.STATIC_DRAW);
+
+
+
+
+    //Post-process shader
+    gl.useProgram(postProcessProgram);
+    setPostprocessingUniforms(postProcessProgram,sceneAsTexture, gl.viewportWidth, gl.viewportHeight);
+    //gl.activeTexture(texture);
+
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+    // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+    var size = 2;          // 2 components per iteration
+    var type = gl.FLOAT;   // the data is 32bit floats
+    var normalize = false; // don't normalize the data
+    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+    var offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(
+      postProcessProgram.vertexPositionAttribute, size, type, normalize, stride, offset);
+
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+    gl.vertexAttribPointer(
+      postProcessProgram.texturePositionAttribute, size, type, normalize, stride, offset);
+
+
+    // Draw the rectangle.
+    var primitiveType = gl.TRIANGLES;
+    var offset = 0;
+    var count = 6;
+    gl.drawArrays(primitiveType, offset, count);
+
+    /*
+    setUniforms(postProcessProgram,pMatrix,mvMatrix);  
 
     gl.bindBuffer(gl.ARRAY_BUFFER, currentMesh.vertexBuffer);
-    gl.vertexAttribPointer(currentProgram.vertexPositionAttribute, currentMesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(postProcessProgram.vertexPositionAttribute, currentMesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, currentMesh.normalBuffer);
-    gl.vertexAttribPointer(currentProgram.vertexNormalAttribute, currentMesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(postProcessProgram.vertexNormalAttribute, currentMesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, currentMesh.indexBuffer);
     gl.drawElements(gl.TRIANGLES, currentMesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    */
 
 
     gl.bindTexture(gl.TEXTURE_2D,null);
-    gl.deleteTexture(normSceneMap);
+    gl.deleteTexture(sceneAsTexture);
 
     if ( draw_light ) {
         gl.useProgram(lightProgram);

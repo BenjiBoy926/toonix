@@ -67,18 +67,44 @@
 </script>
 
 
-<!-- Fragment shader: light draing -->
-<script id="shader-fs-edge-detect" type="x-shader/x-fragment">
-    precision mediump float;
+<!-- Common vertex shader for post processing models -->
+<script id="shader-vs-post" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    attribute vec2 a_textcoord;
 
-    varying vec3 vPosition;             // Vertex position (camera space)
-    varying vec3 vNormal;               // Fragment normal (camera space)
+    uniform vec2 u_resolution;
+
+    varying vec2 v_textcoord;
 
     void main(void) {
-        // Dummy variable to ensure the use of all vertex attributes.
-        vec4 zero = vec4(vPosition  - vPosition , 0.0);
+        // convert the rectangle from pixels to 0.0 to 1.0
+        vec2 zeroToOne = a_position / u_resolution;
 
-        gl_FragColor = zero + vec4(abs(normalize(vNormal)), 1.0); // FIXME
+        // convert from 0->1 to 0->2
+        vec2 zeroToTwo = zeroToOne * 2.0;
+
+        // convert from 0->2 to -1->+1 (clipspace)
+        vec2 clipSpace = zeroToTwo - 1.0;
+
+        gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+        v_textcoord = a_textcoord;
+    }
+</script>
+
+
+<!-- Fragment shader: light draing -->
+<script id="shader-fs-post" type="x-shader/x-fragment">
+    precision mediump float;
+
+    varying vec2 v_textcoord;
+
+    uniform vec2 u_textureSize;
+    uniform sampler2D u_texture;
+
+    void main(void) {
+        vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+        gl_FragColor = texture2D(u_texture, v_textcoord)+
+       (0.0*texture2D(u_texture, v_textcoord + vec2(onePixel.x, 0.0)));
     }
 </script>
 
@@ -130,6 +156,10 @@
 
         // Calculate the surface intensity
         float surfaceIntensity = step * step;
+
+
+        //do this to a side texture
+        //gl_FragColor = zero + vec4(abs(normalize(vNormal)), 1.0); 
 
         // Fragment shader output
         gl_FragColor = zero + vec4(uSpecularColor * surfaceIntensity, 1.0);
