@@ -66,6 +66,22 @@
     }
 </script>
 
+
+<!-- Fragment shader: light draing -->
+<script id="shader-fs-edge-detect" type="x-shader/x-fragment">
+    precision mediump float;
+
+    varying vec3 vPosition;             // Vertex position (camera space)
+    varying vec3 vNormal;               // Fragment normal (camera space)
+
+    void main(void) {
+        // Dummy variable to ensure the use of all vertex attributes.
+        vec4 zero = vec4(vPosition  - vPosition , 0.0);
+
+        gl_FragColor = zero + vec4(abs(normalize(vNormal)), 1.0); // FIXME
+    }
+</script>
+
 <!-- Fragment shader: light draing -->
 <script id="shader-fs-light" type="x-shader/x-fragment">
     precision mediump float;

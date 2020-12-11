@@ -55,6 +55,7 @@ function initMesh() {
  */
 var shaderPrograms;
 var currentProgram;
+var edgeProgram;
 var lightProgram;
 function createShader(vs_id, fs_id) {
     var shaderProg = createShaderProg(vs_id, fs_id);
@@ -75,6 +76,7 @@ function createShader(vs_id, fs_id) {
 
     return shaderProg;
 }
+
 
 function initShaders() {
     shaderPrograms = [
@@ -102,6 +104,8 @@ function initShaders() {
     // gl.useProgram(shaderPrograms[7]);
     // gl.uniform1f(shaderPrograms[7].iorUniform, 5.0);
     // gl.uniform1f(shaderPrograms[7].betaUniform, 0.2);
+
+    edgeProgram = createShader("shader-vs", "shader-fs-edge-detect");
 
     // Initializing light source drawing shader
     lightProgram = createShaderProg("shader-vs-light", "shader-fs-light");
@@ -142,12 +146,15 @@ var ambientIntensity = 0.1;                     // Ambient
 var rotY = 0.0;                                 // object rotation
 var rotY_light = 0.0;                           // light position rotation
 
-function setUniforms(prog) {
-    gl.uniformMatrix4fv(prog.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(prog.mvMatrixUniform, false, mvMatrix);
+//Set the shader variables from pMat (projection matrix) and
+//    from mMat which is the model and view transforms
+function setUniforms(prog,pMat,mMat) {
+    gl.uniformMatrix4fv(prog.pMatrixUniform, false, pMat);
+    gl.uniformMatrix4fv(prog.mvMatrixUniform, false, mMat);
 
-    var nMatrix = mat4.transpose(mat4.inverse(mvMatrix));
+    var nMatrix = mat4.transpose(mat4.inverse(mMat));
     gl.uniformMatrix4fv(prog.nMatrixUniform, false, nMatrix);
+
 
     gl.uniform3fv(prog.lightPosUniform, lightPos);
     gl.uniform1f(prog.lightPowerUniform, lightPower);
@@ -156,29 +163,131 @@ function setUniforms(prog) {
     gl.uniform1f(prog.ambientUniform, ambientIntensity);
 }
 
-var draw_light = false;
-function drawScene() {
-    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    mat4.perspective(35, gl.viewportWidth/gl.viewportHeight, 0.1, 1000.0, pMatrix);
-
+function setLightPosition()
+{
     mat4.identity(lightMatrix);
     mat4.translate(lightMatrix, [0.0, -1.0, -7.0]);
     mat4.rotateX(lightMatrix, 0.3);
     mat4.rotateY(lightMatrix, rotY_light);
 
     lightPos.set([0.0, 2.5, 3.0]);
-    mat4.multiplyVec3(lightMatrix, lightPos);
+    mat4.multiplyVec3(lightMatrix, lightPos); 
+}
+
+var draw_edge = true;
+var draw_light = false;
+
+
+//will need to be updated to allow for multiple meshes
+function renderSceneToTexture(shaderProg,mesh,color,mMat,width,height)
+{
+    var textOuput = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,textOuput);
+    var format; var internalFormat;
+    if(color)
+    {
+        internalFormat= gl.RGBA;
+        format = gl.RGBA;
+    }
+    else
+    {
+        internalFormat= gl.LUMINANCE_ALPHA;
+        format = gl.LUMINANCE_ALPHA;
+    }
+    gl.texImage2D(gl.TEXTURE_2D,0,internalFormat,width,height,0,format,gl.UNSIGNED_BYTE,null);
+
+    //set out of bounds accesses to clamp and set sub pixel accesses to lerp
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+
+    //set frame buffer to first attacthment position
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D,textOuput,0);
+
+    var pMat = mat4.create(); 
+    mat4.perspective(35, width/height, 0.1, 1000.0, pMat);
+ 
+ 
+    // Tell WebGL how to convert from clip space to pixels
+    gl.viewport(0, 0, width, height);
+
+    // Clear the attachment(s).
+    gl.clearColor(0, 0, 1, 1);   // clear to blue
+    gl.clear(gl.COLOR_BUFFER_BIT| gl.DEPTH_BUFFER_BIT);
+
+    gl.useProgram(shaderProg);
+    setUniforms(shaderProg,pMat,mMat);
+  
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
+    gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+    gl.vertexAttribPointer(shaderProg.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+    gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+    //should I unbind texture?
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fb);
+     // render to the canvas
+    //gl.useProgram(null);
+
+    return textOuput;
+}
+
+//mat4.copy was giving me errors, so I just copied the source code in here lol
+function copy(out, a)
+{
+    out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  out[3] = a[3];
+  out[4] = a[4];
+  out[5] = a[5];
+  out[6] = a[6];
+  out[7] = a[7];
+  out[8] = a[8];
+  out[9] = a[9];
+  out[10] = a[10];
+  out[11] = a[11];
+  out[12] = a[12];
+  out[13] = a[13];
+  out[14] = a[14];
+  out[15] = a[15];
+}
+
+function drawScene() {
 
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [0.0, -1.0, -7.0]);
     mat4.rotateX(mvMatrix, 0.3);
     mat4.rotateY(mvMatrix, rotY);
     mat4.multiply(mvMatrix, currentTransform);
+    var cpy = mat4.create();
+    copy(cpy,mvMatrix);
+
+    //consumes cpy matrix
+    var normSceneMap =  renderSceneToTexture(edgeProgram,currentMesh,true,cpy,gl.viewportWidth,gl.viewportHeight);
+    gl.deleteTexture(normSceneMap);
+    gl.bindTexture(gl.TEXTURE_2D,null);
+
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    mat4.perspective(35, gl.viewportWidth/gl.viewportHeight, 0.1, 1000.0, pMatrix);
+
+    setLightPosition();
 
     gl.useProgram(currentProgram);
-    setUniforms(currentProgram);   
+    setUniforms(currentProgram,pMatrix,mvMatrix);  
 
     gl.bindBuffer(gl.ARRAY_BUFFER, currentMesh.vertexBuffer);
     gl.vertexAttribPointer(currentProgram.vertexPositionAttribute, currentMesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -188,6 +297,8 @@ function drawScene() {
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, currentMesh.indexBuffer);
     gl.drawElements(gl.TRIANGLES, currentMesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+
 
     if ( draw_light ) {
         gl.useProgram(lightProgram);
