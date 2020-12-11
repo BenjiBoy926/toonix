@@ -180,7 +180,7 @@ var draw_light = false;
 
 
 //will need to be updated to allow for multiple meshes
-function renderSceneToTexture(shaderProg,mesh,color,mMat,width,height)
+function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
 {
     var textOuput = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,textOuput);
@@ -206,7 +206,14 @@ function renderSceneToTexture(shaderProg,mesh,color,mMat,width,height)
     gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
 
     //set frame buffer to first attacthment position
-    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    var attachmentPoint;
+    if(depth)
+    {
+        attachmentPoint = gl.DEPTH_ATTACHMENT;
+    }
+    else{
+        attachmentPoint = gl.COLOR_ATTACHMENT0;
+    }
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D,textOuput,0);
 
     var pMat = mat4.create(); 
@@ -274,9 +281,7 @@ function drawScene() {
     copy(cpy,mvMatrix);
 
     //consumes cpy matrix
-    var normSceneMap =  renderSceneToTexture(edgeProgram,currentMesh,true,cpy,gl.viewportWidth,gl.viewportHeight);
-    gl.deleteTexture(normSceneMap);
-    gl.bindTexture(gl.TEXTURE_2D,null);
+    var normSceneMap =  renderSceneToTexture(edgeProgram,currentMesh,true,false,cpy,gl.viewportWidth,gl.viewportHeight);
 
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clearColor(1, 1, 1, 1);
@@ -299,6 +304,8 @@ function drawScene() {
     gl.drawElements(gl.TRIANGLES, currentMesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
 
+    gl.bindTexture(gl.TEXTURE_2D,null);
+    gl.deleteTexture(normSceneMap);
 
     if ( draw_light ) {
         gl.useProgram(lightProgram);
