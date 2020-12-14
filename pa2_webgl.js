@@ -266,6 +266,16 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
     gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
+    if ( draw_light ) {
+        gl.useProgram(lightProgram);
+        gl.uniformMatrix4fv(lightProgram.pMatrixUniform, false, pMat);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, lightPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(lightPos), gl.DYNAMIC_DRAW);
+        gl.vertexAttribPointer(lightProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.POINTS, 0, 1);
+    }
+
     //should I unbind texture?
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.deleteFramebuffer(fb);
@@ -407,15 +417,6 @@ function drawScene() {
     gl.bindTexture(gl.TEXTURE_2D,null);
     gl.deleteTexture(sceneAsTexture);
 
-    if ( draw_light ) {
-        gl.useProgram(lightProgram);
-        gl.uniformMatrix4fv(lightProgram.pMatrixUniform, false, pMatrix);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, lightPositionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(lightPos), gl.DYNAMIC_DRAW);
-        gl.vertexAttribPointer(lightProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-        gl.drawArrays(gl.POINTS, 0, 1);
-    }
 }
 
 var lastTime = 0;
