@@ -216,6 +216,7 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
     
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
@@ -231,6 +232,13 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     }
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D,textOuput,0);
 
+
+    var depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
+                                          gl.RENDERBUFFER, depthBuffer);
+
     var pMat = mat4.create(); 
     mat4.perspective(35, width/height, 0.1, 1000.0, pMat);
  
@@ -239,8 +247,11 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.viewport(0, 0, width, height);
 
     // Clear the attachment(s).
-    gl.clearColor(0, 0, 0, 0);   // clear to black
+    gl.clearColor(0.3, 0.3, 0.3, 1.0);   // clear to black
+    gl.enable(gl.DEPTH_TEST);
+    //gl.enable(gl.CULL_FACE);
     gl.clear(gl.COLOR_BUFFER_BIT| gl.DEPTH_BUFFER_BIT);
+
 
     gl.useProgram(shaderProg);
     setUniforms(shaderProg,pMat,mMat);
