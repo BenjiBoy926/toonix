@@ -100,11 +100,47 @@
 
     uniform vec2 u_textureSize;
     uniform sampler2D u_texture;
+    uniform sampler2D normalImageTexture;
 
     void main(void) {
         vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
-        gl_FragColor = texture2D(u_texture, v_textcoord)+
-       (0.0*texture2D(u_texture, v_textcoord + vec2(onePixel.x, 0.0)));
+
+        vec4 sobelX = -1.0*texture2D(normalImageTexture, v_textcoord+onePixel) + 
+                      -2.0*texture2D(normalImageTexture, v_textcoord+vec2(onePixel.x,0)) + 
+                        -1.0*texture2D(normalImageTexture, v_textcoord+vec2(onePixel.x,-1.0*onePixel.y)) + 
+                        texture2D(normalImageTexture, v_textcoord-onePixel) + 
+                      2.0*texture2D(normalImageTexture, v_textcoord-vec2(onePixel.x,0)) + 
+                        texture2D(normalImageTexture, v_textcoord-vec2(onePixel.x,-1.0*onePixel.y));
+
+        vec4 sobelY = -1.0*texture2D(normalImageTexture, v_textcoord-onePixel) + 
+                      -2.0*texture2D(normalImageTexture, v_textcoord-vec2(0,onePixel.y)) + 
+                        -1.0*texture2D(normalImageTexture, v_textcoord-vec2(-1.0*onePixel.x,onePixel.y)) + 
+                        texture2D(normalImageTexture, v_textcoord+onePixel) + 
+                      2.0*texture2D(normalImageTexture, v_textcoord+vec2(0,onePixel.y)) + 
+                        texture2D(normalImageTexture, v_textcoord+vec2(-1.0*onePixel.x,onePixel.y));
+
+        vec4 grad = sqrt(sobelX*sobelX + sobelY*sobelY);
+        gl_FragColor = texture2D(u_texture, v_textcoord)+vec4(grad.xyz,1);
+    }
+</script>
+
+<!-- Fragment shader: light draing -->
+<script id="shader-fs-normal" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform vec3 uLightPos;             // Light position in camera space
+    uniform float uLightPower;          // Light power
+    uniform vec3 uDiffuseColor;         // Diffuse color
+    uniform vec3 uSpecularColor;        // Specular color
+    uniform float uAmbient;             // Ambient
+
+    varying vec3 vPosition;             // Fragment position (camera space)
+    varying vec3 vNormal;               // Fragment normal (camera space)
+
+    void main(void) {
+        // Dummy variable to ensure the use of all vertex attributes.
+        vec4 zero = vec4(vPosition + vNormal - vPosition - vNormal, 0.0);
+        gl_FragColor = zero + vec4(abs(normalize(vNormal)), 1.0); 
     }
 </script>
 
@@ -129,6 +165,8 @@
 
     varying vec3 vPosition;             // Fragment position (camera space)
     varying vec3 vNormal;               // Fragment normal (camera space)
+
+    //uniform sampler2D normalImageTexture; //don't know if I can output to a texture
 
     /*
     *  Calculates the diffuse factor produced by the light illumination
@@ -158,9 +196,6 @@
         float surfaceIntensity = step * step;
 
 
-        //do this to a side texture
-        //gl_FragColor = zero + vec4(abs(normalize(vNormal)), 1.0); 
-
         // Fragment shader output
         gl_FragColor = zero + vec4(uSpecularColor * surfaceIntensity, 1.0);
     }
@@ -176,9 +211,7 @@
         Student ID: 82661345<br><br>
 
         Student name: Christopher VerBurg <br>
-
-        <!-- TODO: add Chris Student ID -->
-        Student ID:
+        Student ID: 15935028
     </p>
 
     <div class="droplist">

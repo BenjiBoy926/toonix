@@ -56,6 +56,7 @@ function initMesh() {
 var shaderPrograms;
 var currentProgram;
 var postProcessProgram;
+var normalPassProgram;
 var lightProgram;
 function createShader(vs_id, fs_id) {
     var shaderProg = createShaderProg(vs_id, fs_id);
@@ -87,6 +88,7 @@ function createPostProcessShader(vs_id, fs_id) {
 
     shaderProg.uResolutionUniform = gl.getUniformLocation(shaderProg, "u_resolution");
     shaderProg.uTextureUniform = gl.getUniformLocation(shaderProg, "u_texture");
+    shaderProg.normImageTextureUniform = gl.getUniformLocation(shaderProg, "normalImageTexture");
     shaderProg.uTextureSizeUniform = gl.getUniformLocation(shaderProg, "u_textureSize");
     return shaderProg;
 }
@@ -98,28 +100,8 @@ function initShaders() {
     ];
     currentProgram = shaderPrograms[0];
 
-    //
-    // Declaring shading model specific uniform variables
-    //
-
-    // Phong shading
-    // shaderPrograms[5].exponentUniform = gl.getUniformLocation(shaderPrograms[5], "uExponent");
-    // gl.useProgram(shaderPrograms[5]);
-    // gl.uniform1f(shaderPrograms[5].exponentUniform, 50.0);    
-
-    // // Blinn-Phong shading
-    // shaderPrograms[6].exponentUniform = gl.getUniformLocation(shaderPrograms[6], "uExponent");
-    // gl.useProgram(shaderPrograms[6]);
-    // gl.uniform1f(shaderPrograms[6].exponentUniform, 50.0);
-
-    // // Microfacet shading
-    // shaderPrograms[7].iorUniform = gl.getUniformLocation(shaderPrograms[7], "uIOR");
-    // shaderPrograms[7].betaUniform = gl.getUniformLocation(shaderPrograms[7], "uBeta");
-    // gl.useProgram(shaderPrograms[7]);
-    // gl.uniform1f(shaderPrograms[7].iorUniform, 5.0);
-    // gl.uniform1f(shaderPrograms[7].betaUniform, 0.2);
-
     postProcessProgram = createPostProcessShader("shader-vs-post", "shader-fs-post");
+    normalPassProgram = createShader("shader-vs", "shader-fs-normal");
 
     // Initializing light source drawing shader
     lightProgram = createShaderProg("shader-vs-light", "shader-fs-light");
@@ -222,22 +204,18 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
 
     //set frame buffer to first attacthment position
-    var attachmentPoint;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,textOuput,0);
+
+
+    var depthBuffer;
     if(depth)
     {
-        attachmentPoint = gl.DEPTH_ATTACHMENT;
+        depthBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
+                                   gl.RENDERBUFFER, depthBuffer);
     }
-    else{
-        attachmentPoint = gl.COLOR_ATTACHMENT0;
-    }
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D,textOuput,0);
-
-
-    var depthBuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
-                                          gl.RENDERBUFFER, depthBuffer);
 
     var pMat = mat4.create(); 
     mat4.perspective(35, width/height, 0.1, 1000.0, pMat);
@@ -249,7 +227,6 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     // Clear the attachment(s).
     gl.clearColor(0.3, 0.3, 0.3, 1.0);   // clear to black
     gl.enable(gl.DEPTH_TEST);
-    //gl.enable(gl.CULL_FACE);
     gl.clear(gl.COLOR_BUFFER_BIT| gl.DEPTH_BUFFER_BIT);
 
 
@@ -281,7 +258,7 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.deleteFramebuffer(fb);
      // render to the canvas
     //gl.useProgram(null);
-
+    gl.bindTexture(gl.TEXTURE_2D,null);
     return textOuput;
 }
 
@@ -308,10 +285,15 @@ function copy(out, a)
 
 //Set the shader variables from pMat (projection matrix) and
 //    from mMat which is the model and view transforms
-function setPostprocessingUniforms(prog,texture, width, height) {
+function setPostprocessingUniforms(prog,texture,normalTexture, width, height) {
     gl.activeTexture(gl.TEXTURE0); //Do I need this?
     gl.bindTexture(gl.TEXTURE_2D, texture); //and this?
     gl.uniform1i(prog.uTextureUniform, texture);
+
+    gl.activeTexture(gl.TEXTURE1); //Do I need this?
+    gl.bindTexture(gl.TEXTURE_2D, normalTexture); //and this?
+    gl.uniform1i(prog.normImageTextureUniform, normalTexture);
+
     gl.uniform2fv(prog.uTextureSizeUniform, [width,height]);
     gl.uniform2fv(prog.uResolutionUniform, [width,height]);
 }
@@ -344,7 +326,8 @@ function drawScene() {
     setLightPosition();
     //consumes cpy matrix
     //actual shader but writes to a texture
-    var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,false,cpy,gl.viewportWidth,gl.viewportHeight);
+    var normalsAsTexture =  renderSceneToTexture(normalPassProgram,currentMesh,true,true,mvMatrix,gl.viewportWidth,gl.viewportHeight);
+    var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,true,cpy,gl.viewportWidth,gl.viewportHeight);
 
 
 
@@ -373,7 +356,7 @@ function drawScene() {
 
     //Post-process shader
     gl.useProgram(postProcessProgram);
-    setPostprocessingUniforms(postProcessProgram,sceneAsTexture, gl.viewportWidth, gl.viewportHeight);
+    setPostprocessingUniforms(postProcessProgram,sceneAsTexture,normalsAsTexture, gl.viewportWidth, gl.viewportHeight);
     //gl.activeTexture(texture);
 
 
@@ -416,6 +399,7 @@ function drawScene() {
 
     gl.bindTexture(gl.TEXTURE_2D,null);
     gl.deleteTexture(sceneAsTexture);
+    gl.deleteTexture(normalsAsTexture);
 
 }
 
