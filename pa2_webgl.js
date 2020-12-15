@@ -72,7 +72,8 @@ function createShader(vs_id, fs_id) {
     shaderProg.lightPowerUniform = gl.getUniformLocation(shaderProg, "uLightPower");
     shaderProg.kdUniform = gl.getUniformLocation(shaderProg, "uDiffuseColor");
     shaderProg.ksUniform = gl.getUniformLocation(shaderProg, "uSpecularColor");
-    shaderProg.ambientUniform = gl.getUniformLocation(shaderProg, "uAmbient");    
+    shaderProg.ambientUniform = gl.getUniformLocation(shaderProg, "uAmbient"); 
+    shaderProg.uResolutionUniform = gl.getUniformLocation(shaderProg, "uResolution");
 
     return shaderProg;
 }
@@ -161,6 +162,7 @@ function setUniforms(prog,pMat,mMat) {
     gl.uniform3fv(prog.kdUniform, diffuseColor);
     gl.uniform3fv(prog.ksUniform, specularColor);
     gl.uniform1f(prog.ambientUniform, ambientIntensity);
+    gl.uniform2fv(prog.uResolutionUniform, [gl.viewportWidth, gl.viewportHeight]);
 }
 
 

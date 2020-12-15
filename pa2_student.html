@@ -101,6 +101,7 @@
     uniform vec3 uDiffuseColor;         // Diffuse color
     uniform vec3 uSpecularColor;        // Specular color
     uniform float uAmbient;             // Ambient
+    uniform vec2 uResolution;           // Resolution
 
     varying vec3 vPosition;             // Fragment position (camera space)
     varying vec3 vNormal;               // Fragment normal (camera space)
@@ -135,6 +136,7 @@
 
         // Possibly make this a uniform later
         int textureSize = 10;
+        vec2 zeroToTwo;
         vec2 texturePos = vec2(float(mod(int(vPosition.x), textureSize)), float(mod(int(vPosition.y), textureSize))); 
 
         float surfaceIntensity = 1.0;
