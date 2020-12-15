@@ -94,6 +94,7 @@
 <!-- Fragment shader: toon shader -->
 <script id="shader-fs-toon" type="x-shader/x-fragment">
     precision mediump float;
+    precision mediump int;
 
     uniform vec3 uLightPos;             // Light position in camera space
     uniform float uLightPower;          // Light power
@@ -112,6 +113,10 @@
         return max(0.0, df);
     }
 
+    int mod(int divisor, int dividend) {
+        return divisor - (dividend * (divisor / dividend));
+    }
+
     /*
     * The main program
     */
@@ -127,6 +132,10 @@
         float nSteps = 4.0;
         float step = sqrt(df) * nSteps;
         step = (floor(step) + smoothstep(0.48, 0.52, fract(step))) / nSteps;
+
+        // Possibly make this a uniform later
+        int textureSize = 10;
+        vec2 texturePos = vec2(float(mod(int(vPosition.x), textureSize)), float(mod(int(vPosition.y), textureSize))); 
 
         // Calculate the surface intensity
         float surfaceIntensity = step * step;
