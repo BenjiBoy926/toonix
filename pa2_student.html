@@ -119,8 +119,13 @@
                       2.0*texture2D(normalImageTexture, v_textcoord+vec2(0,onePixel.y)) + 
                         texture2D(normalImageTexture, v_textcoord+vec2(-1.0*onePixel.x,onePixel.y));
 
+
         vec4 grad = sqrt(sobelX*sobelX + sobelY*sobelY);
-        gl_FragColor = texture2D(u_texture, v_textcoord)+vec4(grad.xyz,1);
+        float normGrad = length(grad);
+
+        vec4 color = (normGrad > 1.0)? vec4(0,0,0,1):texture2D(u_texture, v_textcoord);
+
+        gl_FragColor = color;
     }
 </script>
 

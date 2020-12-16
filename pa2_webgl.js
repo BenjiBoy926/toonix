@@ -177,21 +177,12 @@ var draw_light = false;
 
 //will need to be updated to allow for multiple meshes
 //Does the toon rendering of the scene to a texture so that we can post process on it
-function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
+function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
 {
+    gl.activeTexture((gl.TEXTURE0)+num);
     var textOuput = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,textOuput);
-    var format; var internalFormat;
-    if(color)
-    {
-        internalFormat= gl.RGBA;
-        format = gl.RGBA;
-    }
-    else
-    {
-        internalFormat= gl.LUMINANCE_ALPHA;
-        format = gl.LUMINANCE_ALPHA;
-    }
+    var format = gl.RGBA; var internalFormat= gl.RGBA;
     gl.texImage2D(gl.TEXTURE_2D,0,internalFormat,width,height,0,format,gl.UNSIGNED_BYTE,null);
 
     //set out of bounds accesses to clamp and set sub pixel accesses to lerp
@@ -199,7 +190,6 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 
-    
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
 
@@ -252,13 +242,13 @@ function renderSceneToTexture(shaderProg,mesh,color,depth,mMat,width,height)
         gl.vertexAttribPointer(lightProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.POINTS, 0, 1);
     }
+    gl.bindTexture(gl.TEXTURE_2D,null);
 
     //should I unbind texture?
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.deleteFramebuffer(fb);
      // render to the canvas
     //gl.useProgram(null);
-    gl.bindTexture(gl.TEXTURE_2D,null);
     return textOuput;
 }
 
@@ -288,11 +278,11 @@ function copy(out, a)
 function setPostprocessingUniforms(prog,texture,normalTexture, width, height) {
     gl.activeTexture(gl.TEXTURE0); //Do I need this?
     gl.bindTexture(gl.TEXTURE_2D, texture); //and this?
-    gl.uniform1i(prog.uTextureUniform, texture);
+    gl.uniform1i(prog.uTextureUniform, 0);
 
     gl.activeTexture(gl.TEXTURE1); //Do I need this?
     gl.bindTexture(gl.TEXTURE_2D, normalTexture); //and this?
-    gl.uniform1i(prog.normImageTextureUniform, normalTexture);
+    gl.uniform1i(prog.normImageTextureUniform, 1);
 
     gl.uniform2fv(prog.uTextureSizeUniform, [width,height]);
     gl.uniform2fv(prog.uResolutionUniform, [width,height]);
@@ -326,9 +316,8 @@ function drawScene() {
     setLightPosition();
     //consumes cpy matrix
     //actual shader but writes to a texture
-    var normalsAsTexture =  renderSceneToTexture(normalPassProgram,currentMesh,true,true,mvMatrix,gl.viewportWidth,gl.viewportHeight);
-    var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,true,cpy,gl.viewportWidth,gl.viewportHeight);
-
+    var normalsAsTexture =  renderSceneToTexture(normalPassProgram,currentMesh,true,mvMatrix,gl.viewportWidth,gl.viewportHeight,1);
+    var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,cpy,gl.viewportWidth,gl.viewportHeight,0);
 
 
     // Create a buffer to put three 2d clip space points in
@@ -357,8 +346,6 @@ function drawScene() {
     //Post-process shader
     gl.useProgram(postProcessProgram);
     setPostprocessingUniforms(postProcessProgram,sceneAsTexture,normalsAsTexture, gl.viewportWidth, gl.viewportHeight);
-    //gl.activeTexture(texture);
-
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
@@ -383,21 +370,6 @@ function drawScene() {
     var count = 6;
     gl.drawArrays(primitiveType, offset, count);
 
-    /*
-    setUniforms(postProcessProgram,pMatrix,mvMatrix);  
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, currentMesh.vertexBuffer);
-    gl.vertexAttribPointer(postProcessProgram.vertexPositionAttribute, currentMesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, currentMesh.normalBuffer);
-    gl.vertexAttribPointer(postProcessProgram.vertexNormalAttribute, currentMesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, currentMesh.indexBuffer);
-    gl.drawElements(gl.TRIANGLES, currentMesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    */
-
-
-    gl.bindTexture(gl.TEXTURE_2D,null);
     gl.deleteTexture(sceneAsTexture);
     gl.deleteTexture(normalsAsTexture);
 
