@@ -4,7 +4,8 @@
 var gl;
 function initGL(canvas) {
     try {
-        gl = canvas.getContext("experimental-webgl");
+        gl = canvas.getContext("webgl") || 
+                         canvas.getContext("experimental-webgl");
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
     } catch (e) {
@@ -175,11 +176,12 @@ var draw_edge = true;
 var draw_light = false;
 
 
+
 //will need to be updated to allow for multiple meshes
 //Does the toon rendering of the scene to a texture so that we can post process on it
 function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
 {
-    gl.activeTexture((gl.TEXTURE0)+num);
+    gl.activeTexture(gl.TEXTURE0);
     var textOuput = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,textOuput);
     var format = gl.RGBA; var internalFormat= gl.RGBA;
@@ -276,12 +278,12 @@ function copy(out, a)
 //Set the shader variables from pMat (projection matrix) and
 //    from mMat which is the model and view transforms
 function setPostprocessingUniforms(prog,texture,normalTexture, width, height) {
-    gl.activeTexture(gl.TEXTURE0); //Do I need this?
-    gl.bindTexture(gl.TEXTURE_2D, texture); //and this?
+    gl.activeTexture(gl.TEXTURE0); 
+    gl.bindTexture(gl.TEXTURE_2D, texture); 
     gl.uniform1i(prog.uTextureUniform, 0);
 
-    gl.activeTexture(gl.TEXTURE1); //Do I need this?
-    gl.bindTexture(gl.TEXTURE_2D, normalTexture); //and this?
+    gl.activeTexture(gl.TEXTURE1); 
+    gl.bindTexture(gl.TEXTURE_2D, normalTexture);
     gl.uniform1i(prog.normImageTextureUniform, 1);
 
     gl.uniform2fv(prog.uTextureSizeUniform, [width,height]);
@@ -341,8 +343,6 @@ function drawScene() {
     ]), gl.STATIC_DRAW);
 
 
-
-
     //Post-process shader
     gl.useProgram(postProcessProgram);
     setPostprocessingUniforms(postProcessProgram,sceneAsTexture,normalsAsTexture, gl.viewportWidth, gl.viewportHeight);
@@ -365,13 +365,11 @@ function drawScene() {
 
 
     // Draw the rectangle.
-    var primitiveType = gl.TRIANGLES;
-    var offset = 0;
     var count = 6;
-    gl.drawArrays(primitiveType, offset, count);
+    gl.drawArrays(gl.TRIANGLES, offset, count);
 
-    gl.deleteTexture(sceneAsTexture);
-    gl.deleteTexture(normalsAsTexture);
+    //gl.deleteTexture(sceneAsTexture);
+    //gl.deleteTexture(normalsAsTexture);
 
 }
 
