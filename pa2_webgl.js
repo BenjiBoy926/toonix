@@ -95,7 +95,7 @@ function createPostProcessShader(vs_id, fs_id) {
 }
 
 var ditherTexture;
-
+var frameBuffers;
 function initShaders() {
     shaderPrograms = [
         createShader("shader-vs", "shader-fs-toon")
@@ -152,6 +152,9 @@ function initShaders() {
     lightProgram.vertexPositionAttribute = gl.getAttribLocation(lightProgram, "aVertexPosition");
     gl.enableVertexAttribArray(lightProgram.vertexPositionAttribute);
     lightProgram.pMatrixUniform = gl.getUniformLocation(lightProgram, "uPMatrix");
+
+
+    frameBuffers = [initFramebuffer(true,gl.viewportWidth,gl.viewportHeight,0),initFramebuffer(true,gl.viewportWidth,gl.viewportHeight,1)];
 }
 
 
@@ -220,11 +223,9 @@ var draw_light = false;
 
 
 
-//will need to be updated to allow for multiple meshes
-//Does the toon rendering of the scene to a texture so that we can post process on it
-function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
+function initFramebuffer(depth,width,height,num)
 {
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0+num);
     var textOuput = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,textOuput);
     var format = gl.RGBA; var internalFormat= gl.RGBA;
@@ -251,6 +252,18 @@ function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
                                    gl.RENDERBUFFER, depthBuffer);
     }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return [fb,textOuput];
+}
+
+
+
+//will need to be updated to allow for multiple meshes
+//Does the toon rendering of the scene to a texture so that we can post process on it
+function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
+{
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[num][0]);
 
     var pMat = mat4.create(); 
     mat4.perspective(35, width/height, 0.1, 1000.0, pMat);
@@ -287,14 +300,13 @@ function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
         gl.vertexAttribPointer(lightProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.POINTS, 0, 1);
     }
-    gl.bindTexture(gl.TEXTURE_2D,null);
+    //gl.bindTexture(gl.TEXTURE_2D,null);
 
     //should I unbind texture?
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.deleteFramebuffer(fb);
      // render to the canvas
     //gl.useProgram(null);
-    return textOuput;
+    return frameBuffers[num][1];
 }
 
 //mat4.copy was giving me errors, so I just copied the source code in here lol
