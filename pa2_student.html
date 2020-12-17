@@ -103,6 +103,8 @@
     uniform sampler2D u_texture;
     uniform sampler2D normalImageTexture;
 
+    uniform vec3 uDiffuseColor;
+
     void main(void) {
         vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
 
@@ -124,7 +126,14 @@
         vec4 grad = sqrt(sobelX*sobelX + sobelY*sobelY);
         float normGrad = length(grad);
 
-        vec4 color = (normGrad > 1.0)? vec4(0,0,0,1):texture2D(u_texture, v_textcoord);
+        vec4 color;
+
+        if(normGrad > 0.95) {
+            color = vec4(0.2, 0.2, 0.2, 1.0) * vec4(uDiffuseColor, 1.0);
+        }
+        else {
+            color = texture2D(u_texture, v_textcoord);
+        }
 
         gl_FragColor = color;
     }
@@ -187,7 +196,6 @@
         return max(0.0, df);
     }
 
-
     /*
     * The main program
     */
@@ -206,7 +214,15 @@
         vec2 coords = mod(vPosition.xy*vec2(16.0,16.0),vec2(1.0,1.0))/vec2(ditherTextCellDim.x,1.0);
         coords = vec2((((nSteps-1.0)-floor(sqrt(df) * (nSteps-1.0)))/ditherTextCellDim.x) + coords.x,coords.y);
 
-        vec4 color = (texture2D(ditherTexture, coords).x < 0.5)?vec4(0.0,0.0,0.0,1.0):vec4(uSpecularColor,1.0);
+        vec4 texture = texture2D(ditherTexture, coords);
+        vec4 color;
+
+        if(texture.x < 0.5) {
+            color = vec4(0.3, 0.3, 0.3, 1.0) * vec4(uDiffuseColor, 1.0);
+        }
+        else {
+            color = vec4(uSpecularColor, 1.0);
+        }
 
         // Fragment shader output
         gl_FragColor = zero + color;
@@ -288,18 +304,18 @@
     <div class="panel" style="margin-left:10px">
         <p>Shading Parameters</p>
         <table>
-            <!--
-            TODO: incorporate diffuse color in cel shader 
+            
+            <!-- TODO: incorporate diffuse color in cel shader  -->
             <tr>
                 <td>Diffuse Color</td>
                 <td>
-                    <input type="text" id="colorPicker"> (<span id="colorText">#1f75fe</span>)
+                    <input type="text" id="colorPicker"> (<span id="colorText">#000000</span>)
                 </td>
-            </tr> -->
+            </tr>
             <tr>
                 <td>Specular Color</td>
                 <td>
-                    <input type="text" id="specularColorPicker"> (<span id="specularColorText">#1f75fe</span>)
+                    <input type="text" id="specularColorPicker"> (<span id="specularColorText">#ffffff</span>)
                 </td>
             </tr>
             <!--

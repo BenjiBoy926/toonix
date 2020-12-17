@@ -98,6 +98,8 @@ function createPostProcessShader(vs_id, fs_id) {
     shaderProg.uTextureUniform = gl.getUniformLocation(shaderProg, "u_texture");
     shaderProg.normImageTextureUniform = gl.getUniformLocation(shaderProg, "normalImageTexture");
     shaderProg.uTextureSizeUniform = gl.getUniformLocation(shaderProg, "u_textureSize");
+    shaderProg.kdUniform = gl.getUniformLocation(shaderProg, "uDiffuseColor");
+    
     return shaderProg;
 }
 
@@ -205,7 +207,6 @@ function setUniforms(prog,pMat,mMat) {
     var nMatrix = mat4.transpose(mat4.inverse(mMat));
     gl.uniformMatrix4fv(prog.nMatrixUniform, false, nMatrix);
 
-
     gl.uniform3fv(prog.lightPosUniform, lightPos);
     gl.uniform1f(prog.lightPowerUniform, lightPower);
     gl.uniform3fv(prog.kdUniform, diffuseColor);
@@ -227,8 +228,6 @@ function setLightPosition()
 
 var draw_edge = true;
 var draw_light = false;
-
-
 
 function initFramebuffer(depth,width,height,num)
 {
@@ -357,6 +356,8 @@ function setPostprocessingUniforms(prog,texture,normalTexture, width, height) {
 
     gl.uniform2fv(prog.uTextureSizeUniform, [width,height]);
     gl.uniform2fv(prog.uResolutionUniform, [width,height]);
+
+    gl.uniform3fv(prog.kdUniform, diffuseColor);
 }
 
 function setRectangle(gl, x, y, width, height) {
@@ -381,7 +382,7 @@ function drawScene() {
     mat4.rotateX(mvMatrix, 0.3);
     mat4.rotateY(mvMatrix, rotY);
     mat4.scale(mvMatrix, [0.5, 0.5, 0.5]);
-    
+
     var cpy = mat4.create();
     copy(cpy,mvMatrix);
 
