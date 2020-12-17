@@ -12,6 +12,11 @@ function initGL(canvas) {
     }
     if ( !gl ) alert("Could not initialise WebGL, sorry :-(");
 
+    const ext = gl.getExtension('WEBGL_depth_texture');
+    if (!ext) {
+        return alert('need WEBGL_depth_texture');  // eslint-disable-line
+    }
+
     gl = WebGLDebugUtils.makeDebugContext(gl, throwOnGLError, validateNoneOfTheArgsAreUndefined);
 }
 
@@ -161,7 +166,8 @@ function initShaders() {
     lightProgram.pMatrixUniform = gl.getUniformLocation(lightProgram, "uPMatrix");
 
 
-    frameBuffers = [initFramebuffer(true,gl.viewportWidth,gl.viewportHeight,0),initFramebuffer(true,gl.viewportWidth,gl.viewportHeight,1)];
+    //for resolution changes reinit framebuffers, also reinit all resolution uniforms
+    frameBuffers = [initFramebuffer(true,gl.viewportWidth,gl.viewportHeight,0),initFramebuffer(true,gl.viewportWidth,gl.viewportHeight,1),initDepthMapFramebuffer(gl.viewportWidth,gl.viewportHeight,3)];
 }
 
 
@@ -261,6 +267,38 @@ function initFramebuffer(depth,width,height,num)
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return [fb,textOuput];
+}
+
+function initDepthMapFramebuffer(width,height,num)
+{
+    gl.activeTexture(gl.TEXTURE0+num);
+    var textOuput = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,textOuput);
+    var format = gl.RGBA; var internalFormat= gl.RGBA;
+    gl.texImage2D(gl.TEXTURE_2D,0,internalFormat,width,height,0,format,gl.UNSIGNED_BYTE,null);
+
+    //set out of bounds accesses to clamp and set sub pixel accesses to lerp
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+
+    //set frame buffer to first attacthment position
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,textOuput,0);
+    const depthTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+    gl.texImage2D( gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, width, height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT,null); 
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);        
+
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return [fb,depthTexture];
 }
 
 
