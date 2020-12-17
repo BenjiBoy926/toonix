@@ -176,6 +176,8 @@
     uniform vec2 ditherTextCellDim;     //texture dimensions
     uniform float numberOfTextures;     //numberOfTextures
 
+    uniform vec2 u_resolution;
+
     /*
     *  Calculates the diffuse factor produced by the light illumination
     */
@@ -183,6 +185,7 @@
         float df = dot(normalize(normal), normalize(lightDir));
         return max(0.0, df);
     }
+
 
     /*
     * The main program
@@ -203,9 +206,15 @@
         // Calculate the surface intensity
         float surfaceIntensity = step * step;
 
+        vec2 coords = mod(vPosition.xy,vec2(1,1));
+        //vec2 coords = mod(vPosition.xy,ditherTextCellDim);
+        //coords = vec2(floor(sqrt(df) * (nSteps-1.0))*ditherTextCellDim.x +coords.x,coords.y);
+        coords = vec2((1.0/ditherTextCellDim.x) +coords.x,coords.y);
+        //+fract(vPosition.xy)
+        //texture2D(ditherTexture, coords);
 
         // Fragment shader output
-        gl_FragColor = zero + vec4(uSpecularColor * surfaceIntensity, 1.0);
+        gl_FragColor = zero + 0.0*vec4(uSpecularColor * surfaceIntensity, 1.0)+ texture2D(ditherTexture, coords);
     }
 </script>
 
@@ -327,6 +336,9 @@
         </table>            
     </div>
     <div style="clear:left"></div>
+
+    <button onclick=
+    "show_image('ditherPattern.png');">Show Dither Patterns</button> 
 </body>
 
 </html>

@@ -94,6 +94,7 @@ function createPostProcessShader(vs_id, fs_id) {
     return shaderProg;
 }
 
+var ditherTexture;
 
 function initShaders() {
     shaderPrograms = [
@@ -105,27 +106,41 @@ function initShaders() {
     currentProgram.ditherTextureUniform = gl.getUniformLocation(currentProgram, "ditherTexture");
     currentProgram.dtDimUniform = gl.getUniformLocation(currentProgram, "ditherTextDim");
     currentProgram.dtCellDimUniform = gl.getUniformLocation(currentProgram, "ditherTextCellDim");
-    currentProgram.numTUniform = gl.getUniformLocation(currentProgram, "numberOfTextures");   
+    currentProgram.numTUniform = gl.getUniformLocation(currentProgram, "numberOfTextures");
+    currentProgram.uResolutionUniform = gl.getUniformLocation(currentProgram, "u_resolution");   
 
     gl.useProgram(currentProgram);
-    gl.uniform1f(currentProgram.numTUniform, 10.0);
     var img = new Image();
     img.crossOrigin = "Anonymous";
     img.src = 'ditherPattern.png';
+
+    gl.activeTexture(gl.TEXTURE3);
+    ditherTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, ditherTexture);
+    // Fill the texture with a 1x1 blue pixel.
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                new Uint8Array([0, 0, 255, 255]));
+    gl.uniform1f(currentProgram.numTUniform, 1.0);
+    gl.uniform1i(currentProgram.ditherTextureUniform, 3);
+    gl.uniform2fv(currentProgram.dtDimUniform, [1.0,1.0]);
+    gl.uniform2fv(currentProgram.dtCellDimUniform, [1.0,1.0]);
+    gl.uniform2fv(currentProgram.uResolutionUniform, [gl.viewportWidth,gl.viewportHeight]);
+
     img.onload = function () {
-        console.log(img.height);
+        gl.useProgram(currentProgram);
         gl.activeTexture(gl.TEXTURE3);
-        var texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D,texture);
+        gl.bindTexture(gl.TEXTURE_2D,ditherTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, img);
         //set out of bounds accesses to clamp and set sub pixel accesses to lerp
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
         gl.uniform1i(currentProgram.ditherTextureUniform, 3);
-
+        var numOfCells = 10.0;
+        gl.uniform1f(currentProgram.numTUniform, numOfCells);
         gl.uniform2fv(currentProgram.dtDimUniform, [img.width,img.height]);
-        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/10.0,img.height]);
+        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/numOfCells,img.height]);
+
     };
 
 
@@ -347,8 +362,9 @@ function drawScene() {
     setLightPosition();
     //consumes cpy matrix
     //actual shader but writes to a texture
+     var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,cpy,gl.viewportWidth,gl.viewportHeight,0);
+
     var normalsAsTexture =  renderSceneToTexture(normalPassProgram,currentMesh,true,mvMatrix,gl.viewportWidth,gl.viewportHeight,1);
-    var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,cpy,gl.viewportWidth,gl.viewportHeight,0);
 
 
     // Create a buffer to put three 2d clip space points in
