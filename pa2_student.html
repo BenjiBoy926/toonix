@@ -171,7 +171,10 @@
     varying vec3 vPosition;             // Fragment position (camera space)
     varying vec3 vNormal;               // Fragment normal (camera space)
 
-    //uniform sampler2D normalImageTexture; //don't know if I can output to a texture
+    uniform sampler2D ditherTexture;    //texture atlas of dither images
+    uniform vec2 ditherTextDim;         //atlas dimensions
+    uniform vec2 ditherTextCellDim;     //texture dimensions
+    uniform float numberOfTextures;     //numberOfTextures
 
     /*
     *  Calculates the diffuse factor produced by the light illumination
@@ -193,7 +196,7 @@
         float df = diffuseFactor(vNormal, lightDir);
 
         // Define the toon shading steps
-        float nSteps = 4.0;
+        float nSteps = numberOfTextures;
         float step = sqrt(df) * nSteps;
         step = (floor(step) + smoothstep(0.48, 0.52, fract(step))) / nSteps;
 

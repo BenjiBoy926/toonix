@@ -74,7 +74,7 @@ function createShader(vs_id, fs_id) {
     shaderProg.lightPowerUniform = gl.getUniformLocation(shaderProg, "uLightPower");
     shaderProg.kdUniform = gl.getUniformLocation(shaderProg, "uDiffuseColor");
     shaderProg.ksUniform = gl.getUniformLocation(shaderProg, "uSpecularColor");
-    shaderProg.ambientUniform = gl.getUniformLocation(shaderProg, "uAmbient");    
+    shaderProg.ambientUniform = gl.getUniformLocation(shaderProg, "uAmbient");   
 
     return shaderProg;
 }
@@ -100,6 +100,35 @@ function initShaders() {
         createShader("shader-vs", "shader-fs-toon")
     ];
     currentProgram = shaderPrograms[0];
+
+
+    currentProgram.ditherTextureUniform = gl.getUniformLocation(currentProgram, "ditherTexture");
+    currentProgram.dtDimUniform = gl.getUniformLocation(currentProgram, "ditherTextDim");
+    currentProgram.dtCellDimUniform = gl.getUniformLocation(currentProgram, "ditherTextCellDim");
+    currentProgram.numTUniform = gl.getUniformLocation(currentProgram, "numberOfTextures");   
+
+    gl.useProgram(currentProgram);
+    gl.uniform1f(currentProgram.numTUniform, 10.0);
+    var img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = 'ditherPattern.png';
+    img.onload = function () {
+        console.log(img.height);
+        gl.activeTexture(gl.TEXTURE3);
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D,texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, img);
+        //set out of bounds accesses to clamp and set sub pixel accesses to lerp
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+        gl.uniform1i(currentProgram.ditherTextureUniform, 3);
+
+        gl.uniform2fv(currentProgram.dtDimUniform, [img.width,img.height]);
+        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/10.0,img.height/10.0]);
+    };
+
+
 
     postProcessProgram = createPostProcessShader("shader-vs-post", "shader-fs-post");
     normalPassProgram = createShader("shader-vs", "shader-fs-normal");
