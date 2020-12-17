@@ -136,11 +136,10 @@ function initShaders() {
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
         gl.uniform1i(currentProgram.ditherTextureUniform, 3);
-        var numOfCells = 10.0;
+        var numOfCells = 8.0;
         gl.uniform1f(currentProgram.numTUniform, numOfCells);
         gl.uniform2fv(currentProgram.dtDimUniform, [img.width,img.height]);
         gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/numOfCells,img.height]);
-
     };
 
 
