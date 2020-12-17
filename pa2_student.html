@@ -24,6 +24,7 @@
 <script type="text/javascript" src="meshes/teapot_obj.js"></script>
 <script type="text/javascript" src="meshes/bunny_obj.js"></script>
 <script type="text/javascript" src="meshes/dragon_obj.js"></script>
+<script type="text/javascript" src="meshes/plane_obj.js"></script>
 
 <script type="text/javascript" src="create-adjacency.js"></script>
 <!-- WebGL functions -->
@@ -198,21 +199,17 @@
         vec3 lightDir = uLightPos - vPosition;
         float df = diffuseFactor(vNormal, lightDir);
 
-        // Define the toon shading steps
+        // Define coordinates in the texture
         float nSteps = numberOfTextures;
-        float step = sqrt(df) * nSteps;
-        step = (floor(step) + smoothstep(0.48, 0.52, fract(step))) / nSteps;
 
-        // Calculate the surface intensity
-        float surfaceIntensity = step * step;
-
+        // Division by text cell division should be division by nSteps
         vec2 coords = mod(vPosition.xy*vec2(16.0,16.0),vec2(1.0,1.0))/vec2(ditherTextCellDim.x,1.0);
-        coords = vec2((((nSteps-1.0)-floor(sqrt(df) * (nSteps-1.0)))/ditherTextCellDim.x) +coords.x,coords.y);
+        coords = vec2((((nSteps-1.0)-floor(sqrt(df) * (nSteps-1.0)))/ditherTextCellDim.x) + coords.x,coords.y);
 
         vec4 color = (texture2D(ditherTexture, coords).x < 0.5)?vec4(0.0,0.0,0.0,1.0):vec4(uSpecularColor,1.0);
 
         // Fragment shader output
-        gl_FragColor = zero + 0.0*vec4(uSpecularColor * surfaceIntensity, 1.0)+ color;
+        gl_FragColor = zero + color;
     }
 </script>
 

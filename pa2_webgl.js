@@ -26,15 +26,17 @@ function initMesh() {
     meshes = [
         new OBJ.Mesh(teapot_mesh_str),
         new OBJ.Mesh(bunny_mesh_str),
-        new OBJ.Mesh(dragon_mesh_str)
+        new OBJ.Mesh(dragon_mesh_str),
+        new OBJ.Mesh(plane_mesh_str)
     ];
     OBJ.initMeshBuffers(gl, meshes[0]);
     OBJ.initMeshBuffers(gl, meshes[1]);
     OBJ.initMeshBuffers(gl, meshes[2]);
+    OBJ.initMeshBuffers(gl, meshes[3]);
 
     currentMesh = meshes[0];
 
-    meshTransforms = [mat4.create(), mat4.create(), mat4.create()];
+    meshTransforms = [mat4.create(), mat4.create(), mat4.create(), mat4.create()];
 
     // Set per-object transforms to make them better fitting the viewport
     mat4.identity(meshTransforms[0]);
@@ -42,10 +44,15 @@ function initMesh() {
     mat4.scale(meshTransforms[0], [0.15, 0.15, 0.15]);        
 
     mat4.identity(meshTransforms[1]);
-    mat4.translate(meshTransforms[1], [0.5, 0, 0]);
+    mat4.translate(meshTransforms[1], [5, 0, 0]);
 
     mat4.identity(meshTransforms[2]);
-    mat4.scale(meshTransforms[2], [0.25, 0.25, 0.25]);   
+    mat4.scale(meshTransforms[2], [0.25, 0.25, 0.25]);
+    mat4.translate(meshTransforms[2], [-20, 0, 0]);
+    
+    mat4.identity(meshTransforms[3]);
+    mat4.translate(meshTransforms[3], [0, -1, -1]);
+    mat4.scale(meshTransforms[3], [1.2, 0.5, 1]);
 
     currentTransform = meshTransforms[0];
 }
@@ -373,6 +380,8 @@ function drawScene() {
     mat4.translate(mvMatrix, [0.0, -1.0, -7.0]);
     mat4.rotateX(mvMatrix, 0.3);
     mat4.rotateY(mvMatrix, rotY);
+    mat4.scale(mvMatrix, [0.5, 0.5, 0.5]);
+    
     var cpy = mat4.create();
     copy(cpy,mvMatrix);
 
