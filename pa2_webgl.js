@@ -291,7 +291,7 @@ function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
     gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
-    if ( draw_light ) {
+    if ( draw_light && num != 1) {
         gl.useProgram(lightProgram);
         gl.uniformMatrix4fv(lightProgram.pMatrixUniform, false, pMat);
 
