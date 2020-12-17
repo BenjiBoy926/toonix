@@ -125,7 +125,7 @@ function initShaders() {
         gl.uniform1i(currentProgram.ditherTextureUniform, 3);
 
         gl.uniform2fv(currentProgram.dtDimUniform, [img.width,img.height]);
-        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/10.0,img.height);
+        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/10.0,img.height]);
     };
 
 
