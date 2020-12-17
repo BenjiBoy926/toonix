@@ -125,7 +125,7 @@ function initShaders() {
         gl.uniform1i(currentProgram.ditherTextureUniform, 3);
 
         gl.uniform2fv(currentProgram.dtDimUniform, [img.width,img.height]);
-        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/10.0,img.height/10.0]);
+        gl.uniform2fv(currentProgram.dtCellDimUniform, [img.width/10.0,img.height);
     };
 
 
@@ -423,7 +423,27 @@ function tick() {
 
 function webGLStart() {
     var canvas = $("#canvas0")[0];
+    canvas.addEventListener("webglcontextlost", function(event) {
+            event.preventDefault();
+    }, false);
+    canvas.addEventListener(
+        "webglcontextrestored", setupWebGLStateAndResources, false);
+    initGL(canvas);
+    initMesh();
+    initShaders();
+    initBuffers();
 
+    gl.clearColor(0.3, 0.3, 0.3, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    tick();
+}
+
+function setupWebGLStateAndResources()
+{
+    var canvas = $("#canvas0")[0];
+
+    console.log("Context restored!");
     initGL(canvas);
     initMesh();
     initShaders();
