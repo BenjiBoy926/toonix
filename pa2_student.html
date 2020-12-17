@@ -104,6 +104,7 @@
     uniform sampler2D normalImageTexture;
 
     uniform vec3 uDiffuseColor;
+    uniform float uAmbient;
 
     void main(void) {
         vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
@@ -129,7 +130,10 @@
         vec4 color;
 
         if(normGrad > 0.95) {
-            color = vec4(0.2, 0.2, 0.2, 1.0) * vec4(uDiffuseColor, 1.0);
+            float ambientScale = 0.2;
+            float ambientOffset = 0.1;
+            float ambientComponent = uAmbient * ambientScale + ambientOffset;
+            color = vec4(ambientComponent, ambientComponent, ambientComponent, 1.0) * vec4(uDiffuseColor, 1.0);
         }
         else {
             color = texture2D(u_texture, v_textcoord);
@@ -218,7 +222,10 @@
         vec4 color;
 
         if(texture.x < 0.5) {
-            color = vec4(0.3, 0.3, 0.3, 1.0) * vec4(uDiffuseColor, 1.0);
+            float ambientScale = 0.3;
+            float ambientOffset = 0.1;
+            float ambientComponent = uAmbient * ambientScale + ambientOffset;
+            color = vec4(ambientComponent, ambientComponent, ambientComponent, 1.0) * vec4(uDiffuseColor, 1.0);
         }
         else {
             color = vec4(uSpecularColor, 1.0);
@@ -318,17 +325,17 @@
                     <input type="text" id="specularColorPicker"> (<span id="specularColorText">#ffffff</span>)
                 </td>
             </tr>
-            <!--
-            TODO: incorporate ambient light intensity in cel shader
+            
+            <!-- TODO: incorporate ambient light intensity in cel shader -->
             <tr>
                 <td>Ambient</td>
                 <td>
-                    <input type="range" min="0" max="50" value="10" onchange="updateSlider_Ambient(this.value);">
+                    <input type="range" min="0" max="100" value="10" onchange="updateSlider_Ambient(this.value);">
                     (<span id="sliderAmount_Ambient">0.1</span>)
                 </td>
             </tr>
 
-            TODO: allow step number change for cel shader
+            <!-- TODO: allow step number change for cel shader
             <tr>
                 <td>
                     <select onchange="changeActiveShader(this);">
@@ -342,8 +349,8 @@
                         <option value="7">Task 4: (Isotropic) Microfacet Reflectance Model</option>
                     </select>
                 </td>
-            </tr>
-            -->
+            </tr> -->
+           
         </table>            
     </div>
     <div style="clear:left"></div>

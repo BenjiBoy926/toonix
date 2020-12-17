@@ -104,6 +104,7 @@ function createPostProcessShader(vs_id, fs_id) {
     shaderProg.normImageTextureUniform = gl.getUniformLocation(shaderProg, "normalImageTexture");
     shaderProg.uTextureSizeUniform = gl.getUniformLocation(shaderProg, "u_textureSize");
     shaderProg.kdUniform = gl.getUniformLocation(shaderProg, "uDiffuseColor");
+    shaderProg.ambientUniform = gl.getUniformLocation(shaderProg, "uAmbient");
     
     return shaderProg;
 }
@@ -396,6 +397,7 @@ function setPostprocessingUniforms(prog,texture,normalTexture, width, height) {
     gl.uniform2fv(prog.uResolutionUniform, [width,height]);
 
     gl.uniform3fv(prog.kdUniform, diffuseColor);
+    gl.uniform1f(prog.ambientUniform, ambientIntensity);
 }
 
 function setRectangle(gl, x, y, width, height) {
