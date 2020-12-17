@@ -279,17 +279,24 @@ function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
 
 
     gl.useProgram(shaderProg);
-    setUniforms(shaderProg,pMat,mMat);
   
+    var i = 0;
+    meshes.forEach(m =>{
+        var cpy = mat4.create();
+        copy(cpy,mMat) ;
+        mat4.multiply(cpy, meshTransforms[i]);
+        setUniforms(shaderProg,pMat,cpy);
+        gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);
+        gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, m.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
-    gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, m.normalBuffer);
+        gl.vertexAttribPointer(shaderProg.vertexNormalAttribute, m.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
-    gl.vertexAttribPointer(shaderProg.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, m.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+        i = i+1;
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
-    gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    })
 
     if ( draw_light && num != 1) {
         gl.useProgram(lightProgram);
@@ -366,7 +373,6 @@ function drawScene() {
     mat4.translate(mvMatrix, [0.0, -1.0, -7.0]);
     mat4.rotateX(mvMatrix, 0.3);
     mat4.rotateY(mvMatrix, rotY);
-    mat4.multiply(mvMatrix, currentTransform);
     var cpy = mat4.create();
     copy(cpy,mvMatrix);
 
