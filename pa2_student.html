@@ -118,6 +118,14 @@
         return divisor - (dividend * (divisor / dividend));
     }
 
+    float textureCoord(float coord, int size) {
+        return float(mod(int(coord), size));
+    }
+
+    vec2 clipToScreen(vec2 clip, vec2 resolution) {
+        return (clip + 1.0) * (resolution / 2.0);
+    }
+
     /*
     * The main program
     */
@@ -136,23 +144,23 @@
 
         // Possibly make this a uniform later
         int textureSize = 10;
-        vec2 zeroToTwo;
-        vec2 texturePos = vec2(float(mod(int(vPosition.x), textureSize)), float(mod(int(vPosition.y), textureSize))); 
+        vec2 texturePos = clipToScreen(vPosition.xy, uResolution);   
+        texturePos = vec2(textureCoord(texturePos.x, textureSize), textureCoord(texturePos.y, textureSize)); 
 
         float surfaceIntensity = 1.0;
 
         if(nSteps * step < nSteps) {
-            if(vPosition.x < 3.0 || vPosition.x > 6.0 || vPosition.y < 3.0 || vPosition.y > 6.0) {
+            if(texturePos.x < 3.0 || texturePos.x > 6.0 || texturePos.y < 3.0 || texturePos.y > 6.0) {
                 surfaceIntensity = 0.0;
             }
         }
 
-        surfaceIntensity = step * step;
+        //surfaceIntensity = step * step;
 
         // Fragment shader output
         gl_FragColor = zero + vec4(uSpecularColor * surfaceIntensity, 1.0);
 
-        //gl_FragColor = zero + vec4(vPosition.z, 0.0, 0.0, 1.0);
+        //gl_FragColor = zero + vec4(texturePos, 0.0, 1.0);
     }
 </script>
 
