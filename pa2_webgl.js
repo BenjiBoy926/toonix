@@ -279,7 +279,7 @@ function setLightPosition()
     mat4.rotateY(lightMatrix, rotY_light);
 
     //lightPos.set([0.0, 10.0, 13.0]);
-    lightPos.set([0.0, 6.0, 9.0]);
+    lightPos.set([0.0, 8.0, 11.0]);
     mat4.multiplyVec3(lightMatrix, lightPos); 
 }
 
@@ -397,7 +397,7 @@ function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,nu
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[2][0]);
 
     var pMat = mat4.create(); 
-    mat4.perspective(38, width/height, 0.1, 1000.0, pMat);
+    mat4.perspective(43, width/height, 0.1, 1000.0, pMat);
  
  
     // Tell WebGL how to convert from clip space to pixels
@@ -412,7 +412,7 @@ function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,nu
 
     gl.useProgram(shaderProg);
     var look = mat4.create();
-    var lookAtTarget = [0,-2,0];
+    var lookAtTarget = [0,-1,0];
     copy(lightView,lookAt(lightPos,lookAtTarget,[0,1,0],look));
 
     var i = 0;
@@ -420,8 +420,8 @@ function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,nu
         look = mat4.create();
         look = mat4.inverse(lookAt(lightPos,lookAtTarget,[0,1,0],look));
         var spinObject = mat4.create();
-        //spinObject = mat4.identity(spinObject);
-        copy(spinObject,mMat);
+        spinObject = mat4.identity(spinObject);
+        //copy(spinObject,mMat);
         mat4.multiply(look,mat4.multiply(spinObject,meshTransforms[i]));
         setShadowUniforms(shaderProg,pMat,look);
         gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);
@@ -604,6 +604,7 @@ function drawScene() {
 
     //Post-process shader
     gl.useProgram(postProcessProgram);
+    //setPostprocessingUniforms(postProcessProgram,frameBuffers[2][2],frameBuffers[2][2], gl.viewportWidth, gl.viewportHeight);
     setPostprocessingUniforms(postProcessProgram,sceneAsTexture,normalsAsTexture, gl.viewportWidth, gl.viewportHeight);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);

@@ -245,7 +245,7 @@
         
         //projected texcoord from WebGL fundamentals
         vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
-        float currentDepth = projectedTexcoord.z + -0.0002;
+        float currentDepth = projectedTexcoord.z + -0.0005;
 
         //check to make sure we are accessing inside the texture
         bool inRange =
