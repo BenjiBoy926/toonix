@@ -127,7 +127,7 @@ function initShaders() {
     currentProgram.uResolutionUniform = gl.getUniformLocation(currentProgram, "u_resolution");
     currentProgram.shadowMapUniform = gl.getUniformLocation(currentProgram, "shadowMap");  
 
-    shadowProgram = createShader("shader-vs", "shader-fs-light");
+    shadowProgram = createShader("shader-vs", "shader-fs-normal");
 
     gl.useProgram(currentProgram);
     var img = new Image();
@@ -215,7 +215,7 @@ var rotY_light = 0.0;                           // light position rotation
 
 //Set the shader variables from pMat (projection matrix) and
 //    from mMat which is the model and view transforms
-function setUniforms(prog,hasShadowMap,shadowmap,pMat,mMat,view) {
+function setUniforms(prog,hasShadowMap,shadowmap,pMat,mMat,model) {
     gl.uniformMatrix4fv(prog.pMatrixUniform, false, pMat);
     gl.uniformMatrix4fv(prog.mvMatrixUniform, false, mMat);
 
@@ -230,7 +230,7 @@ function setUniforms(prog,hasShadowMap,shadowmap,pMat,mMat,view) {
 
     if(hasShadowMap)
     {
-        gl.uniformMatrix4fv(prog.inverseViewUniform, false, view);
+        gl.uniformMatrix4fv(prog.inverseViewUniform, false, model);
 
         var textureMatrix = mat4.create();
         mat4.identity(textureMatrix);
@@ -265,16 +265,19 @@ function setShadowUniforms(prog,pMat,mMat) {
     var nMatrix = mat4.transpose(mat4.inverse(mMat));
     gl.uniformMatrix4fv(prog.nMatrixUniform, false, nMatrix);
 
+    gl.uniform3fv(prog.lightPosUniform, lightPos);
+    gl.uniform1f(prog.lightPowerUniform, lightPower);
+    gl.uniform3fv(prog.kdUniform, diffuseColor);
+    gl.uniform3fv(prog.ksUniform, specularColor);
+    gl.uniform1f(prog.ambientUniform, ambientIntensity);
 }
 
 function setLightPosition()
 {
     mat4.identity(lightMatrix);
-    mat4.translate(lightMatrix, [0.0, -1.0, -7.0]);
-    mat4.rotateX(lightMatrix, 0.3);
     mat4.rotateY(lightMatrix, rotY_light);
 
-    lightPos.set([0.0, 2.5, 6.0]);
+    lightPos.set([0.0, 10.0, 13.0]);
     mat4.multiplyVec3(lightMatrix, lightPos); 
 }
 
@@ -307,8 +310,7 @@ function initFramebuffer(depth,width,height,num)
         depthBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
-                                   gl.RENDERBUFFER, depthBuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return [fb,textOuput];
@@ -316,23 +318,22 @@ function initFramebuffer(depth,width,height,num)
 
 function initDepthMapFramebuffer(width,height,num)
 {
-    gl.activeTexture(gl.TEXTURE0+num+1);
+    gl.activeTexture(gl.TEXTURE4);
     var textOuput = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,textOuput);
     var format = gl.RGBA; var internalFormat= gl.RGBA;
     gl.texImage2D(gl.TEXTURE_2D,0,internalFormat,width,height,0,format,gl.UNSIGNED_BYTE,null);
 
-    //set out of bounds accesses to clamp and set sub pixel accesses to lerp
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
 
     //set frame buffer to first attacthment position
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,textOuput,0);
-    gl.activeTexture(gl.TEXTURE0+num);
+    gl.activeTexture(gl.TEXTURE3);
     const depthTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, depthTexture);
     gl.texImage2D( gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, width, height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT,null); 
@@ -344,20 +345,57 @@ function initDepthMapFramebuffer(width,height,num)
 
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return [fb,depthTexture];
+    return [fb,depthTexture,textOuput];
+}
+
+let xAxis;
+let yAxis;
+let zAxis;
+
+//better look at then mat4
+//https://github.com/greggman/twgl.js/tree/master/src
+function lookAt(eye, target, up, dst) {
+  dst = dst || mat4.create();
+
+  xAxis = xAxis || vec3.create();
+  yAxis = yAxis || vec3.create();
+  zAxis = zAxis || vec3.create();
+
+  vec3.normalize(
+      vec3.subtract(eye, target, zAxis), zAxis);
+  vec3.normalize(vec3.cross(up, zAxis, xAxis), xAxis);
+  vec3.normalize(vec3.cross(zAxis, xAxis, yAxis), yAxis);
+
+  dst[ 0] = xAxis[0];
+  dst[ 1] = xAxis[1];
+  dst[ 2] = xAxis[2];
+  dst[ 3] = 0;
+  dst[ 4] = yAxis[0];
+  dst[ 5] = yAxis[1];
+  dst[ 6] = yAxis[2];
+  dst[ 7] = 0;
+  dst[ 8] = zAxis[0];
+  dst[ 9] = zAxis[1];
+  dst[10] = zAxis[2];
+  dst[11] = 0;
+  dst[12] = eye[0];
+  dst[13] = eye[1];
+  dst[14] = eye[2];
+  dst[15] = 1;
+
+  return dst;
 }
 
 
 
-//will need to be updated to allow for multiple meshes
 //Does the toon rendering of the scene to a texture so that we can post process on it
 function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,num)
 {
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[num-1][0]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[2][0]);
 
     var pMat = mat4.create(); 
-    mat4.perspective(35, width/height, 0.1, 1000.0, pMat);
+    mat4.perspective(38, width/height, 0.1, 1000.0, pMat);
  
  
     // Tell WebGL how to convert from clip space to pixels
@@ -372,14 +410,17 @@ function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,nu
 
     gl.useProgram(shaderProg);
     var look = mat4.create();
-    var lookAtTarget = [0,-5,0];
-    copy(lightView,mat4.lookAt(look,lightPos,lookAtTarget,[0,1,0]));
+    var lookAtTarget = [0,-2,0];
+    copy(lightView,lookAt(lightPos,lookAtTarget,[0,1,0],look));
 
     var i = 0;
     meshes.forEach(m =>{
         look = mat4.create();
-        mat4.lookAt(look,lightPos,lookAtTarget,[0,1,0]);
-        mat4.multiply(look, meshTransforms[i]);
+        look = mat4.inverse(lookAt(lightPos,lookAtTarget,[0,1,0],look));
+        var spinObject = mat4.create();
+        spinObject = mat4.identity(spinObject);
+        //copy(spinObject,mMat);
+        mat4.multiply(look,mat4.multiply(spinObject,meshTransforms[i]));
         setShadowUniforms(shaderProg,pMat,look);
         gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);
         gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, m.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -399,7 +440,7 @@ function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,nu
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
      // render to the canvas
     //gl.useProgram(null);
-    return frameBuffers[num-1][1];
+    return frameBuffers[2][1];
 }
 
 
@@ -535,7 +576,6 @@ function drawScene() {
     //actual shader but writes to a texture
     var shadowMap = renderLightSourceDepthMapToTexture(shadowProgram,currentMesh,cpy2,gl.viewportWidth,gl.viewportHeight,3)
     var sceneAsTexture =  renderSceneToTexture(currentProgram,true,shadowMap,cpy,gl.viewportWidth,gl.viewportHeight,0);
-
     var normalsAsTexture =  renderSceneToTexture(normalPassProgram,false,shadowMap,mvMatrix,gl.viewportWidth,gl.viewportHeight,1);
 
 
@@ -562,7 +602,6 @@ function drawScene() {
 
     //Post-process shader
     gl.useProgram(postProcessProgram);
-    //setPostprocessingUniforms(postProcessProgram,shadowMap,shadowMap, gl.viewportWidth, gl.viewportHeight);
     setPostprocessingUniforms(postProcessProgram,sceneAsTexture,normalsAsTexture, gl.viewportWidth, gl.viewportHeight);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);

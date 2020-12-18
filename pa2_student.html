@@ -84,7 +84,7 @@
     varying vec3 vPosition;             // Vertex position (camera space)
     varying vec3 vNormal;               // Vertex normal (camera space)
 
-    varying vec4 v_projectedTexcoord;
+    varying vec4 v_projectedTexcoord;   //vec in camera space
 
     void main(void) {
         vec4 camSpacePosition = uMVMatrix * vec4(aVertexPosition, 1.0);
@@ -246,7 +246,7 @@
         
         //projected texcoord from WebGL fundamentals
         vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
-        float currentDepth = projectedTexcoord.z + -0.0042;
+        float currentDepth = projectedTexcoord.z + -0.0002;
 
         //check to make sure we are accessing inside the texture
         bool inRange =
@@ -257,7 +257,7 @@
 
         // the 'r' channel has the depth values
         float projectedDepth = texture2D(shadowMap, projectedTexcoord.xy).r;
-        float shadowLight = (inRange && projectedDepth <= currentDepth) ? 1.0 : 1.0;
+        float shadowLight = (inRange && (projectedDepth <= currentDepth)) ? 0.0 : 1.0;
 
 
         // Define coordinates in the texture
