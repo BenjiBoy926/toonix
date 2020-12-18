@@ -211,7 +211,7 @@ var lightPower = 5.0;                           // "Power" of the light source
 // Common parameters for shading models
 var diffuseColor = [0.2392, 0.5216, 0.7765];    // Diffuse color
 var specularColor = [1.0, 1.0, 1.0];            // Specular color
-var ambientIntensity = 0.1;                     // Ambient
+var ambientIntensity = 0.7;                     // Ambient
 
 // Animation related variables
 var rotY = 0.0;                                 // object rotation
