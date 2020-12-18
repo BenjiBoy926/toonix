@@ -114,6 +114,8 @@ function createPostProcessShader(vs_id, fs_id) {
 
 var ditherTexture;
 var frameBuffers;
+
+var useShadow = false;
 function initShaders() {
     shaderPrograms = [
         createShader("shader-vs-shading", "shader-fs-toon")
@@ -125,11 +127,13 @@ function initShaders() {
     currentProgram.dtCellDimUniform = gl.getUniformLocation(currentProgram, "ditherTextCellDim");
     currentProgram.numTUniform = gl.getUniformLocation(currentProgram, "numberOfTextures");
     currentProgram.uResolutionUniform = gl.getUniformLocation(currentProgram, "u_resolution");
-    currentProgram.shadowMapUniform = gl.getUniformLocation(currentProgram, "shadowMap");  
+    currentProgram.shadowMapUniform = gl.getUniformLocation(currentProgram, "shadowMap"); 
+    currentProgram.useShadowUniform = gl.getUniformLocation(currentProgram, "useShadow");   
 
     shadowProgram = createShader("shader-vs", "shader-fs-normal");
 
     gl.useProgram(currentProgram);
+    gl.uniform1f(currentProgram.useShadowUniform, useShadow);
     var img = new Image();
     img.crossOrigin = "Anonymous";
     img.src = 'ditherPattern.png';

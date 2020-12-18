@@ -80,6 +80,13 @@ function changeAnimatedLightState(ifAnimated) {
     $("#sliderBarLight").prop("disabled", !animated_light);
 }
 
+
+function changeShadowState(ifShadow) {
+    useShadow = ifShadow;
+    gl.useProgram(currentProgram);
+    gl.uniform1f(currentProgram.useShadowUniform, useShadow);
+}
+
 function updateSliderLight(sliderAmount) {
     var value = sliderAmount*10.0;
     $("#sliderAmountLight").html(value);

@@ -224,6 +224,8 @@
     uniform vec2 u_resolution;          //resolution of screen
     varying vec4 v_projectedTexcoord;   //spot in shadow map
 
+    uniform bool useShadow;             //turn off and on shadows
+
     /*
     *  Calculates the diffuse factor produced by the light illumination
     */
@@ -259,6 +261,8 @@
         float projectedDepth = texture2D(shadowMap, projectedTexcoord.xy).r;
         float shadowLight = (inRange && (projectedDepth <= currentDepth)) ? 0.0 : 1.0;
 
+        if(!useShadow)
+            shadowLight = 1.0;
 
         // Define coordinates in the texture
         float nSteps = numberOfTextures;
@@ -318,6 +322,7 @@
         <table>
             <tr>
                 <td width="200px"><input type="checkbox" onchange="changeAnimatedState(this.checked);">Animated object</td>
+                <td width="200px"><input type="checkbox" onchange="changeShadowState(this.checked);">Shadows</td>
                 <td>
                     <input id="sliderBar" type="range" min="1" max="36" value="6" onchange="updateSlider(this.value);" disabled>
                     (<span id="sliderAmount">60</span>&deg;/s)
