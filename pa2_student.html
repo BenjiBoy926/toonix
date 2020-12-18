@@ -48,13 +48,14 @@
 <script id="shader-vs" type="x-shader/x-vertex">
     uniform mat4 uMVMatrix;             // Model-view matrix
     uniform mat4 uPMatrix;              // Projection matrix
-    uniform mat4 uNMatrix;              // Normal matrix
+    uniform mat4 uNMatrix;              // Normal matrix  
 
     attribute vec3 aVertexPosition;     // Vertex position in object space
     attribute vec3 aVertexNormal;       // Vertex normal in object space
 
     varying vec3 vPosition;             // Vertex position (camera space)
     varying vec3 vNormal;               // Vertex normal (camera space)
+
 
     void main(void) {
         vec4 camSpacePosition = uMVMatrix * vec4(aVertexPosition, 1.0);
@@ -64,8 +65,43 @@
 
         vec4 camSpaceNormal = uNMatrix * vec4(aVertexNormal, 0.0);
         vNormal = vec3(camSpaceNormal);
+
     }
 </script>
+
+
+<!-- Common vertex shader for all reflectance models -->
+<script id="shader-vs-shading" type="x-shader/x-vertex">
+    uniform mat4 inverseViewMatrix;
+    uniform mat4 uMVMatrix;             // Model-view matrix
+    uniform mat4 uPMatrix;              // Projection matrix
+    uniform mat4 uNMatrix;              // Normal matrix
+    uniform mat4 u_textureMatrix;       
+
+    attribute vec3 aVertexPosition;     // Vertex position in object space
+    attribute vec3 aVertexNormal;       // Vertex normal in object space
+
+    varying vec3 vPosition;             // Vertex position (camera space)
+    varying vec3 vNormal;               // Vertex normal (camera space)
+
+    varying vec4 v_projectedTexcoord;
+
+    void main(void) {
+        vec4 camSpacePosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+        vPosition = vec3(camSpacePosition);
+
+        gl_Position = uPMatrix * camSpacePosition;
+
+        vec4 camSpaceNormal = uNMatrix * vec4(aVertexNormal, 0.0);
+        vNormal = vec3(camSpaceNormal);
+
+        //reproject it back to the light's point of view
+        v_projectedTexcoord = u_textureMatrix*inverseViewMatrix*uMVMatrix*vec4(aVertexPosition, 1.0);
+    }
+</script>
+
+
+
 
 
 <!-- Common vertex shader for post processing models -->
@@ -192,6 +228,7 @@
 
     uniform sampler2D shadowMap;        //shadow map of scene
     uniform vec2 u_resolution;          //resolution of screen
+    varying vec4 v_projectedTexcoord;   //spot in shadow map
 
     /*
     *  Calculates the diffuse factor produced by the light illumination
@@ -212,12 +249,29 @@
         vec3 lightDir = uLightPos - vPosition;
         float df = diffuseFactor(vNormal, lightDir);
 
+        
+        //inspired by https://webglfundamentals.org/webgl/lessons/webgl-shadows.html
+        vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
+        float currentDepth = projectedTexcoord.z + -0.0042;
+
+        //check to make sure we are accessing inside the texture
+        bool inRange =
+            projectedTexcoord.x >= 0.0 &&
+            projectedTexcoord.x <= 1.0 &&
+            projectedTexcoord.y >= 0.0 &&
+            projectedTexcoord.y <= 1.0;
+
+        // the 'r' channel has the depth values
+        float projectedDepth = texture2D(shadowMap, projectedTexcoord.xy).r;
+        float shadowLight = (inRange && projectedDepth <= currentDepth) ? 0.0 : 1.0;
+
+
         // Define coordinates in the texture
         float nSteps = numberOfTextures;
 
         // Division by text cell division should be division by nSteps
         vec2 coords = mod(vPosition.xy*vec2(16.0,16.0),vec2(1.0,1.0))/vec2(ditherTextCellDim.x,1.0);
-        coords = vec2((((nSteps-1.0)-floor(sqrt(df) * (nSteps-1.0)))/ditherTextCellDim.x) + coords.x,coords.y);
+        coords = vec2((((nSteps-1.0)-((shadowLight)*floor(sqrt(df) * (nSteps-1.0))))/ditherTextCellDim.x) + coords.x,coords.y);
 
         vec4 texture = texture2D(ditherTexture, coords);
         vec4 color;
