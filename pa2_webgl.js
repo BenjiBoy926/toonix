@@ -230,9 +230,7 @@ function setUniforms(prog,hasShadowMap,shadowmap,pMat,mMat,view) {
 
     if(hasShadowMap)
     {
-        var inverseView = mat4.create(); 
-        copy(inverseView,view);
-        gl.uniformMatrix4fv(prog.inverseViewUniform, false, mat4.inverse(inverseView));
+        gl.uniformMatrix4fv(prog.inverseViewUniform, false, view);
 
         var textureMatrix = mat4.create();
         mat4.identity(textureMatrix);
@@ -318,7 +316,7 @@ function initFramebuffer(depth,width,height,num)
 
 function initDepthMapFramebuffer(width,height,num)
 {
-    gl.activeTexture(gl.TEXTURE0+num);
+    gl.activeTexture(gl.TEXTURE0+num+1);
     var textOuput = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,textOuput);
     var format = gl.RGBA; var internalFormat= gl.RGBA;
@@ -334,6 +332,7 @@ function initDepthMapFramebuffer(width,height,num)
 
     //set frame buffer to first attacthment position
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,textOuput,0);
+    gl.activeTexture(gl.TEXTURE0+num);
     const depthTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, depthTexture);
     gl.texImage2D( gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, width, height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT,null); 
@@ -433,7 +432,7 @@ function renderSceneToTexture(shaderProg,hasShadowMap,shadowmap,mMat,width,heigh
         var cpy = mat4.create();
         copy(cpy,mMat) ;
         mat4.multiply(cpy, meshTransforms[i]);
-        setUniforms(shaderProg,hasShadowMap,shadowmap,pMat,cpy,mMat);
+        setUniforms(shaderProg,hasShadowMap,shadowmap,pMat,cpy,meshTransforms[i]);
         gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);
         gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, m.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 

@@ -72,11 +72,11 @@
 
 <!-- Common vertex shader for all reflectance models -->
 <script id="shader-vs-shading" type="x-shader/x-vertex">
-    uniform mat4 inverseViewMatrix;
+    uniform mat4 inverseViewMatrix;     //this is actually just the model matrix
     uniform mat4 uMVMatrix;             // Model-view matrix
     uniform mat4 uPMatrix;              // Projection matrix
     uniform mat4 uNMatrix;              // Normal matrix
-    uniform mat4 u_textureMatrix;       
+    uniform mat4 u_textureMatrix;       //supposed to convert model space to view-projection of the light view
 
     attribute vec3 aVertexPosition;     // Vertex position in object space
     attribute vec3 aVertexNormal;       // Vertex normal in object space
@@ -96,7 +96,7 @@
         vNormal = vec3(camSpaceNormal);
 
         //reproject it back to the light's point of view
-        v_projectedTexcoord = u_textureMatrix*inverseViewMatrix*uMVMatrix*vec4(aVertexPosition, 1.0);
+        v_projectedTexcoord = u_textureMatrix*inverseViewMatrix*vec4(aVertexPosition, 1.0);
     }
 </script>
 
@@ -114,15 +114,9 @@
     varying vec2 v_textcoord;
 
     void main(void) {
-        // convert the rectangle from pixels to 0.0 to 1.0
         vec2 zeroToOne = a_position / u_resolution;
-
-        // convert from 0->1 to 0->2
         vec2 zeroToTwo = zeroToOne * 2.0;
-
-        // convert from 0->2 to -1->+1 (clipspace)
         vec2 clipSpace = zeroToTwo - 1.0;
-
         gl_Position = vec4(clipSpace * vec2(-1, 1), 0, 1);
         v_textcoord = a_textcoord;
     }
@@ -250,7 +244,7 @@
         float df = diffuseFactor(vNormal, lightDir);
 
         
-        //inspired by https://webglfundamentals.org/webgl/lessons/webgl-shadows.html
+        //projected texcoord from WebGL fundamentals
         vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
         float currentDepth = projectedTexcoord.z + -0.0042;
 
@@ -263,7 +257,7 @@
 
         // the 'r' channel has the depth values
         float projectedDepth = texture2D(shadowMap, projectedTexcoord.xy).r;
-        float shadowLight = (inRange && projectedDepth <= currentDepth) ? 0.0 : 1.0;
+        float shadowLight = (inRange && projectedDepth <= currentDepth) ? 1.0 : 1.0;
 
 
         // Define coordinates in the texture
@@ -316,7 +310,6 @@
         <span style="margin-left:30px">
             Resolution:
             <select onchange="changeResolution(this);">
-              <option value="0">640x360</option>
               <option value="1" selected="selected">800x450</option>
               <option value="2">960x540</option>
             </select>
