@@ -241,9 +241,6 @@ function setUniforms(prog,hasShadowMap,shadowmap,pMat,mMat,model) {
         textureMatrix = mat4.translate(textureMatrix, [0.5, 0.5, 0.5]);
         textureMatrix = mat4.scale(textureMatrix, [0.5, 0.5, 0.5]);
         textureMatrix = mat4.multiply(textureMatrix, pMat);
-        // use the inverse of this world matrix to make
-        // a matrix that will transform other positions
-        // to be relative this this world space.
         var invLight = mat4.create();
         copy(invLight,lightView);
         textureMatrix = mat4.multiply(
@@ -281,7 +278,8 @@ function setLightPosition()
     mat4.identity(lightMatrix);
     mat4.rotateY(lightMatrix, rotY_light);
 
-    lightPos.set([0.0, 10.0, 13.0]);
+    //lightPos.set([0.0, 10.0, 13.0]);
+    lightPos.set([0.0, 6.0, 9.0]);
     mat4.multiplyVec3(lightMatrix, lightPos); 
 }
 
@@ -422,8 +420,8 @@ function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,nu
         look = mat4.create();
         look = mat4.inverse(lookAt(lightPos,lookAtTarget,[0,1,0],look));
         var spinObject = mat4.create();
-        spinObject = mat4.identity(spinObject);
-        //copy(spinObject,mMat);
+        //spinObject = mat4.identity(spinObject);
+        copy(spinObject,mMat);
         mat4.multiply(look,mat4.multiply(spinObject,meshTransforms[i]));
         setShadowUniforms(shaderProg,pMat,look);
         gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);

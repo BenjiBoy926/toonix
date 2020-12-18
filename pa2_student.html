@@ -101,9 +101,6 @@
 </script>
 
 
-
-
-
 <!-- Common vertex shader for post processing models -->
 <script id="shader-vs-post" type="x-shader/x-vertex">
     attribute vec2 a_position;
@@ -349,15 +346,6 @@
                     (<span id="sliderAmountLight">60</span>&deg;/s)
                 </td>
             </tr>
-            <!--
-            TODO: incorporate light power in cel shader 
-            <tr>
-                <td>Light power</td>
-                <td>
-                    <input id="sliderBar_LightPower" type="range" min="1" max="20" value="10" onchange="updateSlider_LightPower(this.value);">
-                    (<span id="sliderAmount_LightPower">5</span>)
-                </td>
-            </tr> -->
         </table>
     </div>
 
@@ -379,7 +367,6 @@
                 </td>
             </tr>
             
-            <!-- TODO: incorporate ambient light intensity in cel shader -->
             <tr>
                 <td>Ambient</td>
                 <td>
@@ -387,22 +374,6 @@
                     (<span id="sliderAmount_Ambient">0.7</span>)
                 </td>
             </tr>
-
-            <!-- TODO: allow step number change for cel shader
-            <tr>
-                <td>
-                    <select onchange="changeActiveShader(this);">
-                        <option value="0" selected="selected">Default: White</option>
-                        <option value="1">Task 1-1: Position</option>
-                        <option value="2">Task 1-2: Normal</option>
-                        <option value="3">Task 1-3: Lighting Dir.</option>
-                        <option value="4">Task 2: Cel Shader</option>
-                        <option value="5">Task 3-1: Phong Reflectance Model</option>
-                        <option value="6">Task 3-2: Blinn-Phong Reflectance Model</option>
-                        <option value="7">Task 4: (Isotropic) Microfacet Reflectance Model</option>
-                    </select>
-                </td>
-            </tr> -->
            
         </table>            
     </div>
