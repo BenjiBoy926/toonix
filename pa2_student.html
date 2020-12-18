@@ -129,7 +129,7 @@
 
         vec4 color;
 
-        if(normGrad > 0.95) {
+        if(normGrad > 0.99) {
             float ambientScale = 0.2;
             float ambientOffset = 0.1;
             float ambientComponent = uAmbient * ambientScale + ambientOffset;
@@ -190,7 +190,8 @@
     uniform vec2 ditherTextCellDim;     //texture dimensions
     uniform float numberOfTextures;     //numberOfTextures
 
-    uniform vec2 u_resolution;
+    uniform sampler2D shadowMap;        //shadow map of scene
+    uniform vec2 u_resolution;          //resolution of screen
 
     /*
     *  Calculates the diffuse factor produced by the light illumination

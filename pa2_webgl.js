@@ -71,6 +71,7 @@ var currentProgram;
 var postProcessProgram;
 var normalPassProgram;
 var lightProgram;
+var shadowProgram;
 function createShader(vs_id, fs_id) {
     var shaderProg = createShaderProg(vs_id, fs_id);
 
@@ -117,40 +118,42 @@ function initShaders() {
     ];
     currentProgram = shaderPrograms[0];
 
-
     currentProgram.ditherTextureUniform = gl.getUniformLocation(currentProgram, "ditherTexture");
     currentProgram.dtDimUniform = gl.getUniformLocation(currentProgram, "ditherTextDim");
     currentProgram.dtCellDimUniform = gl.getUniformLocation(currentProgram, "ditherTextCellDim");
     currentProgram.numTUniform = gl.getUniformLocation(currentProgram, "numberOfTextures");
-    currentProgram.uResolutionUniform = gl.getUniformLocation(currentProgram, "u_resolution");   
+    currentProgram.uResolutionUniform = gl.getUniformLocation(currentProgram, "u_resolution");
+    currentProgram.shadowMapUniform = gl.getUniformLocation(currentProgram, "shadowMap");  
+
+    shadowProgram = createShader("shader-vs", "shader-fs-light");
 
     gl.useProgram(currentProgram);
     var img = new Image();
     img.crossOrigin = "Anonymous";
     img.src = 'ditherPattern.png';
 
-    gl.activeTexture(gl.TEXTURE3);
+    gl.activeTexture(gl.TEXTURE2);
     ditherTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, ditherTexture);
     // Fill the texture with a 1x1 blue pixel.
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
                 new Uint8Array([0, 0, 255, 255]));
     gl.uniform1f(currentProgram.numTUniform, 1.0);
-    gl.uniform1i(currentProgram.ditherTextureUniform, 3);
+    gl.uniform1i(currentProgram.ditherTextureUniform, 2);
     gl.uniform2fv(currentProgram.dtDimUniform, [1.0,1.0]);
     gl.uniform2fv(currentProgram.dtCellDimUniform, [1.0,1.0]);
     gl.uniform2fv(currentProgram.uResolutionUniform, [gl.viewportWidth,gl.viewportHeight]);
 
     img.onload = function () {
         gl.useProgram(currentProgram);
-        gl.activeTexture(gl.TEXTURE3);
+        gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D,ditherTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, img);
         //set out of bounds accesses to clamp and set sub pixel accesses to lerp
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-        gl.uniform1i(currentProgram.ditherTextureUniform, 3);
+        gl.uniform1i(currentProgram.ditherTextureUniform, 2);
         var numOfCells = 8.0;
         gl.uniform1f(currentProgram.numTUniform, numOfCells);
         gl.uniform2fv(currentProgram.dtDimUniform, [img.width,img.height]);
@@ -161,6 +164,8 @@ function initShaders() {
 
     postProcessProgram = createPostProcessShader("shader-vs-post", "shader-fs-post");
     normalPassProgram = createShader("shader-vs", "shader-fs-normal");
+
+
 
     // Initializing light source drawing shader
     lightProgram = createShaderProg("shader-vs-light", "shader-fs-light");
@@ -207,7 +212,7 @@ var rotY_light = 0.0;                           // light position rotation
 
 //Set the shader variables from pMat (projection matrix) and
 //    from mMat which is the model and view transforms
-function setUniforms(prog,pMat,mMat) {
+function setUniforms(prog,hasShadowMap,shadowmap,pMat,mMat) {
     gl.uniformMatrix4fv(prog.pMatrixUniform, false, pMat);
     gl.uniformMatrix4fv(prog.mvMatrixUniform, false, mMat);
 
@@ -219,8 +224,26 @@ function setUniforms(prog,pMat,mMat) {
     gl.uniform3fv(prog.kdUniform, diffuseColor);
     gl.uniform3fv(prog.ksUniform, specularColor);
     gl.uniform1f(prog.ambientUniform, ambientIntensity);
+
+    if(hasShadowMap)
+    {
+        gl.activeTexture(gl.TEXTURE3); 
+        gl.bindTexture(gl.TEXTURE_2D, shadowmap);
+        gl.uniform1i(prog.shadowMapUniform, 3);
+    }
 }
 
+
+//Set the shader variables from pMat (projection matrix) and
+//    from mMat which is the model and view transforms
+function setShadowUniforms(prog,pMat,mMat) {
+    gl.uniformMatrix4fv(prog.pMatrixUniform, false, pMat);
+    gl.uniformMatrix4fv(prog.mvMatrixUniform, false, mMat);
+
+    var nMatrix = mat4.transpose(mat4.inverse(mMat));
+    gl.uniformMatrix4fv(prog.nMatrixUniform, false, nMatrix);
+
+}
 
 function setLightPosition()
 {
@@ -305,7 +328,60 @@ function initDepthMapFramebuffer(width,height,num)
 
 //will need to be updated to allow for multiple meshes
 //Does the toon rendering of the scene to a texture so that we can post process on it
-function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
+function renderLightSourceDepthMapToTexture(shaderProg,mesh,mMat,width,height,num)
+{
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[num-1][0]);
+
+    var pMat = mat4.create(); 
+    mat4.perspective(35, width/height, 0.1, 1000.0, pMat);
+ 
+ 
+    // Tell WebGL how to convert from clip space to pixels
+    gl.viewport(0, 0, width, height);
+
+    // Clear the attachment(s).
+    gl.clearColor(0.3, 0.3, 0.3, 1.0);   // clear to black
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.COLOR_BUFFER_BIT| gl.DEPTH_BUFFER_BIT);
+
+
+
+    gl.useProgram(shaderProg);
+  
+    var i = 0;
+    meshes.forEach(m =>{
+        var look = mat4.create();
+        mat4.lookAt(look,lightPos,[0,0,0],[0,1,0]);
+        mat4.multiply(look, meshTransforms[i]);
+        setShadowUniforms(shaderProg,pMat,look);
+        gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);
+        gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, m.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, m.normalBuffer);
+        gl.vertexAttribPointer(shaderProg.vertexNormalAttribute, m.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, m.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+        i = i+1;
+
+    })
+
+    //gl.bindTexture(gl.TEXTURE_2D,null);
+
+    //should I unbind texture?
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+     // render to the canvas
+    //gl.useProgram(null);
+    return frameBuffers[num-1][1];
+}
+
+
+
+
+//will need to be updated to allow for multiple meshes
+//Does the toon rendering of the scene to a texture so that we can post process on it
+function renderSceneToTexture(shaderProg,hasShadowMap,shadowmap,mMat,width,height,num)
 {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[num][0]);
@@ -330,7 +406,7 @@ function renderSceneToTexture(shaderProg,mesh,depth,mMat,width,height,num)
         var cpy = mat4.create();
         copy(cpy,mMat) ;
         mat4.multiply(cpy, meshTransforms[i]);
-        setUniforms(shaderProg,pMat,cpy);
+        setUniforms(shaderProg,hasShadowMap,shadowmap,pMat,cpy);
         gl.bindBuffer(gl.ARRAY_BUFFER, m.vertexBuffer);
         gl.vertexAttribPointer(shaderProg.vertexPositionAttribute, m.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -429,9 +505,10 @@ function drawScene() {
     setLightPosition();
     //consumes cpy matrix
     //actual shader but writes to a texture
-     var sceneAsTexture =  renderSceneToTexture(currentProgram,currentMesh,true,cpy,gl.viewportWidth,gl.viewportHeight,0);
+    var shadowMap = renderLightSourceDepthMapToTexture(shadowProgram,currentMesh,cpy,gl.viewportWidth,gl.viewportHeight,3)
+    var sceneAsTexture =  renderSceneToTexture(currentProgram,true,shadowMap,cpy,gl.viewportWidth,gl.viewportHeight,0);
 
-    var normalsAsTexture =  renderSceneToTexture(normalPassProgram,currentMesh,true,mvMatrix,gl.viewportWidth,gl.viewportHeight,1);
+    var normalsAsTexture =  renderSceneToTexture(normalPassProgram,false,shadowMap,mvMatrix,gl.viewportWidth,gl.viewportHeight,1);
 
 
     // Create a buffer to put three 2d clip space points in
